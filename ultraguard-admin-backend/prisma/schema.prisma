@@ -1,0 +1,244 @@
+// Ultra-Guard Visitor Access Management System
+// Database schema (Phase 1 deliverable per SRS section 5).
+//
+// Dev datasource is SQLite for a zero-config local setup. For staging/production,
+// change `provider` to "postgresql" and point DATABASE_URL at a Postgres instance —
+// the models below are already portable (no SQLite-only types are used).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Properties & Units — supports multi-property / multi-unit residents
+// ---------------------------------------------------------------------------
+
+model Property {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  units      Unit[]
+  gates      Gate[]
+  panicAlerts PanicAlert[]
+}
+
+model Unit {
+  id         String   @id @default(cuid())
+  label      String // e.g. "Unit 12B", "House 4"
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  residents ResidentUnit[]
+
+  @@index([propertyId])
+}
+
+// Many-to-many: a resident can manage multiple units/properties (multi-property management)
+model ResidentUnit {
+  id         String   @id @default(cuid())
+  residentId String
+  unitId     String
+  resident   Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  unit       Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@unique([residentId, unitId])
+  @@index([unitId])
+}
+
+// ---------------------------------------------------------------------------
+// People & Auth
+// ---------------------------------------------------------------------------
+
+enum AdminRole {
+  SUPER_ADMIN
+  OPERATOR
+  GUARD
+}
+
+model Admin {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(OPERATOR)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  resolvedPanicAlerts PanicAlert[] @relation("ResolvedBy")
+}
+
+model Resident {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String    @unique
+  email         String?   @unique
+  otpCodeHash   String?
+  otpExpiresAt  DateTime?
+  pushToken     String?
+  status        ResidentStatus @default(ACTIVE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  units         ResidentUnit[]
+  accessCodes   AccessCode[]
+  entryLogs     EntryLog[]
+  panicAlerts   PanicAlert[]
+
+  @@index([phone])
+}
+
+enum ResidentStatus {
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+// ---------------------------------------------------------------------------
+// Access Codes (OTP / Time-Bound / Recurring passes)
+// ---------------------------------------------------------------------------
+
+enum AccessCodeType {
+  ONE_TIME
+  TIME_BOUND
+  RECURRING
+}
+
+enum AccessCodeStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  REVOKED
+}
+
+model AccessCode {
+  id            String           @id @default(cuid())
+  code          String           @unique // 6-digit PIN shown/typed at the keypad
+  qrToken       String           @unique // opaque token embedded in the dynamic QR code
+  type          AccessCodeType
+  status        AccessCodeStatus @default(ACTIVE)
+
+  residentId    String
+  resident      Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+
+  visitorName   String
+  visitorPhone  String?
+
+  validFrom     DateTime
+  validUntil    DateTime
+
+  // For RECURRING passes: JSON-encoded rule, e.g.
+  // { "daysOfWeek": [1,2,3,4,5], "startTime": "08:00", "endTime": "17:00" }
+  recurrenceRule String?
+
+  maxUses       Int      @default(1) // 1 for ONE_TIME; higher/omitted-cap for recurring
+  useCount      Int      @default(0)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  entryLogs     EntryLog[]
+
+  @@index([residentId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Gate Hardware (placeholder — no specific intercom hardware has been
+// selected yet, see docs/HARDWARE_INTEGRATION_PROTOCOL.md)
+// ---------------------------------------------------------------------------
+
+enum GateStatus {
+  ONLINE
+  OFFLINE
+  UNKNOWN
+}
+
+model Gate {
+  id           String     @id @default(cuid())
+  name         String // e.g. "Main Gate", "Pedestrian Gate"
+  propertyId   String
+  property     Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  apiKeyHash   String // credential used by the gate/intercom device to call /api/gate/validate
+  status       GateStatus @default(UNKNOWN)
+  lastSeenAt   DateTime?
+  createdAt    DateTime   @default(now())
+
+  entryLogs    EntryLog[]
+
+  @@index([propertyId])
+}
+
+// ---------------------------------------------------------------------------
+// Entry Logs — immutable audit trail
+// ---------------------------------------------------------------------------
+
+enum EntryMethod {
+  PIN
+  QR
+}
+
+enum EntryResult {
+  SUCCESS
+  EXPIRED
+  DENIED
+  INVALID
+}
+
+model EntryLog {
+  id            String      @id @default(cuid())
+  accessCodeId  String?
+  accessCode    AccessCode? @relation(fields: [accessCodeId], references: [id], onDelete: SetNull)
+
+  residentId    String?
+  resident      Resident?   @relation(fields: [residentId], references: [id], onDelete: SetNull)
+
+  gateId        String?
+  gate          Gate?       @relation(fields: [gateId], references: [id], onDelete: SetNull)
+
+  visitorName   String?
+  method        EntryMethod
+  result        EntryResult
+  reason        String? // human-readable denial/expiry reason
+  occurredAt    DateTime    @default(now())
+
+  @@index([residentId])
+  @@index([gateId])
+  @@index([occurredAt])
+}
+
+// ---------------------------------------------------------------------------
+// Emergency / Panic Trigger
+// ---------------------------------------------------------------------------
+
+enum PanicStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+model PanicAlert {
+  id           String      @id @default(cuid())
+  residentId   String
+  resident     Resident    @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  propertyId   String?
+  property     Property?   @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  status       PanicStatus @default(OPEN)
+  message      String?
+  createdAt    DateTime    @default(now())
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   Admin?      @relation("ResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+}
