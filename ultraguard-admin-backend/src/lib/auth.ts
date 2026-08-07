@@ -11,7 +11,9 @@ export type AuthTokenPayload =
   | { subjectType: "admin"; adminId: string; role: string };
 
 export function signToken(payload: AuthTokenPayload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],
+  });
 }
 
 export function verifyToken(token: string): AuthTokenPayload {
