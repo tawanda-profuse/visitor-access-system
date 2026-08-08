@@ -22,13 +22,20 @@ From this root folder (after each project's own one-time `npm install` / `npx pr
 migrate dev` — see their READMEs):
 
 ```bash
-npm install          # installs concurrently, used by start:all
+npm install          # installs dependencies used by start:all
 npm run start:all    # runs the backend (Next.js) and the mobile app (Expo) together
 ```
 
-`start:all` is just `concurrently` running `dev:backend` and `dev:mobile` side by side
-with labeled, colored output — you can also run either alone (`npm run dev:backend`,
-`npm run dev:mobile`).
+On Windows, `start:all` opens **two separate terminal windows** ("Ultra-Guard Backend"
+and "Ultra-Guard Mobile") rather than interleaving output in one. This is deliberate:
+Expo's interactive CLI (the QR code, the `a`/`w`/`r`/etc. keyboard shortcuts menu) needs
+a real terminal to do keypress capture and screen redraws. Running it through an
+output-multiplexer like `concurrently` — which pipes the child's stdout through itself
+to prefix/color it — makes Expo see a non-interactive terminal and it silently drops
+that UI (Metro still runs fine, you just don't get the QR code). Two independent
+windows sidesteps that entirely. You can also run either half alone (`npm run
+dev:backend`, `npm run dev:mobile`), or `cd` into `ultraguard-resident-app` and run
+`npm start` directly if you prefer.
 
 ## Testing the mobile app
 

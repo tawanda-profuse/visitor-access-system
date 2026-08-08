@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import * as SecureStore from "expo-secure-store";
 import { fetchMe } from "@/api/resident";
+import { deleteToken, getToken, setToken as persistToken } from "./tokenStorage";
 import type { Resident } from "@/api/types";
 
 const TOKEN_KEY = "ultraguard.residentToken";
@@ -23,14 +23,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const stored = await SecureStore.getItemAsync(TOKEN_KEY);
+        const stored = await getToken(TOKEN_KEY);
         if (stored) {
           const me = await fetchMe(stored);
           setToken(stored);
           setResident(me.resident);
         }
       } catch {
-        await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
+        await deleteToken(TOKEN_KEY).catch(() => {});
       } finally {
         setIsLoading(false);
       }
@@ -38,13 +38,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (nextToken: string, nextResident: Resident) => {
-    await SecureStore.setItemAsync(TOKEN_KEY, nextToken);
+    await persistToken(TOKEN_KEY, nextToken);
     setToken(nextToken);
     setResident(nextResident);
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
+    await deleteToken(TOKEN_KEY).catch(() => {});
     setToken(null);
     setResident(null);
   };

@@ -26,7 +26,17 @@ function run(command, args, options = {}) {
 }
 
 // --- Preflight: JDK 17+ -----------------------------------------------------
-const javaVersionCheck = spawnSync("java", ["-version"], { encoding: "utf8", shell: true });
+// Resolve java via JAVA_HOME first rather than assuming it's on PATH — we deliberately
+// don't mutate PATH when setting up a portable JDK (setx has a documented history of
+// silently truncating long, pre-existing PATH values, which is a much worse outcome
+// than requiring JAVA_HOME to be set).
+const javaHome = process.env.JAVA_HOME;
+const javaBin = javaHome
+  ? path.join(javaHome, "bin", isWindows ? "java.exe" : "java")
+  : "java";
+const javaCommand = javaHome && fs.existsSync(javaBin) ? javaBin : "java";
+
+const javaVersionCheck = spawnSync(javaCommand, ["-version"], { encoding: "utf8", shell: true });
 const javaOutput = `${javaVersionCheck.stdout ?? ""}${javaVersionCheck.stderr ?? ""}`;
 const versionMatch = javaOutput.match(/version "(\d+)(?:\.(\d+))?/);
 const javaMajor = versionMatch
@@ -35,18 +45,25 @@ const javaMajor = versionMatch
     : Number(versionMatch[1])
   : null;
 
+const restartHint =
+  "\nIf a JDK 17+ was already set up on this machine (e.g. under\n" +
+  "%USERPROFILE%\\android-dev-tools\\jdk-17 with JAVA_HOME pointed at it), this terminal\n" +
+  "was likely opened before that env var was set — close it and open a new one.";
+
 if (javaVersionCheck.status !== 0 || !javaMajor) {
   fail(
     "Couldn't detect a Java installation (`java -version` failed).\n" +
       "Install a JDK 17 (e.g. https://adoptium.net/temurin/releases/?version=17), set\n" +
-      "JAVA_HOME to it, and re-run this script.",
+      "JAVA_HOME to it, and re-run this script." +
+      restartHint,
   );
 } else if (javaMajor < 17) {
   fail(
     `Found Java ${javaMajor}, but building this Android project needs JDK 17 or newer.\n` +
       "Install one (e.g. https://adoptium.net/temurin/releases/?version=17), point\n" +
       "JAVA_HOME at it, and re-run this script. (Multiple JDKs can coexist — you only\n" +
-      "need JAVA_HOME to resolve to 17+ for this build.)",
+      "need JAVA_HOME to resolve to 17+ for this build.)" +
+      restartHint,
   );
 }
 
@@ -65,8 +82,9 @@ if (!sdkRoot || !hasBuildTools || !hasPlatforms) {
       '  setx ANDROID_HOME "C:\\Users\\<you>\\AppData\\Local\\Android\\Sdk"\n\n' +
       "Or, without Android Studio, install the command-line tools + at least one\n" +
       "build-tools/platforms package via `sdkmanager`, then accept licenses with\n" +
-      "`sdkmanager --licenses`.\n\n" +
-      "Until then, use `npm run android:apk` (cloud build via EAS) instead — it needs\n" +
+      "`sdkmanager --licenses`." +
+      restartHint +
+      "\n\nUntil then, use `npm run android:apk` (cloud build via EAS) instead — it needs\n" +
       "none of this local setup.",
   );
 }
@@ -77,8 +95,12 @@ run("npx", ["expo", "prebuild", "--platform", "android"], { cwd: projectRoot });
 
 console.log("Building debug APK (gradlew assembleDebug)...");
 const androidDir = path.join(projectRoot, "android");
-const gradlew = isWindows ? "gradlew.bat" : "./gradlew";
-run(gradlew, ["assembleDebug"], { cwd: androidDir });
+// Use the absolute path rather than a bare "gradlew.bat"/"./gradlew" — with shell:true,
+// cmd.exe on Windows doesn't reliably resolve a bare relative filename against `cwd`.
+// It's quoted because with shell:true, Node just joins command+args with spaces before
+// handing the string to cmd.exe, and this repo's path contains spaces ("Source Code").
+const gradlew = path.join(androidDir, isWindows ? "gradlew.bat" : "gradlew");
+run(isWindows ? `"${gradlew}"` : gradlew, ["assembleDebug"], { cwd: androidDir });
 
 const apkPath = path.join(androidDir, "app", "build", "outputs", "apk", "debug", "app-debug.apk");
 if (!fs.existsSync(apkPath)) {

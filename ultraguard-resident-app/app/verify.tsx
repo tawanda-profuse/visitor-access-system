@@ -7,7 +7,7 @@ import { Button } from "@/components/Button";
 import { useAppTheme } from "@/theme/ThemeContext";
 import { useAuth } from "@/auth/AuthContext";
 import { requestOtp, verifyOtp } from "@/api/resident";
-import { ApiClientError } from "@/api/client";
+import { describeError } from "@/api/client";
 
 export default function VerifyScreen() {
   const { colors } = useAppTheme();
@@ -32,7 +32,7 @@ export default function VerifyScreen() {
       await login(result.token, result.resident);
       router.replace("/(tabs)");
     } catch (e) {
-      setError(e instanceof ApiClientError ? e.message : "Something went wrong. Try again.");
+      setError(describeError(e, "Something went wrong. Try again."));
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export default function VerifyScreen() {
     try {
       await requestOtp(phone);
     } catch (e) {
-      setError(e instanceof ApiClientError ? e.message : "Couldn't resend the code.");
+      setError(describeError(e, "Couldn't resend the code."));
     } finally {
       setResending(false);
     }

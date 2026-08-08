@@ -8,7 +8,7 @@ import { DateTimeField } from "@/components/DateTimeField";
 import { useAppTheme } from "@/theme/ThemeContext";
 import { useAuth } from "@/auth/AuthContext";
 import { createAccessCode } from "@/api/resident";
-import { ApiClientError } from "@/api/client";
+import { describeError } from "@/api/client";
 import type { AccessCodeType } from "@/api/types";
 
 const TYPE_OPTIONS: { value: AccessCodeType; label: string; helper: string }[] = [
@@ -79,7 +79,7 @@ export default function InviteScreen() {
       });
       router.replace(`/code/${result.accessCode.id}`);
     } catch (e) {
-      setError(e instanceof ApiClientError ? e.message : "Couldn't create the pass. Try again.");
+      setError(describeError(e, "Couldn't create the pass. Try again."));
     } finally {
       setLoading(false);
     }

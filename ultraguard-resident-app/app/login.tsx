@@ -7,7 +7,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { useAppTheme } from "@/theme/ThemeContext";
 import { requestOtp } from "@/api/resident";
-import { ApiClientError } from "@/api/client";
+import { describeError } from "@/api/client";
 
 export default function LoginScreen() {
   const { colors } = useAppTheme();
@@ -36,7 +36,7 @@ export default function LoginScreen() {
         router.push({ pathname: "/verify", params: { phone: phone.trim() } });
       }
     } catch (e) {
-      setError(e instanceof ApiClientError ? e.message : "Something went wrong. Try again.");
+      setError(describeError(e, "Something went wrong. Try again."));
     } finally {
       setLoading(false);
     }
