@@ -1,6 +1,6 @@
 # Gate / Intercom Hardware Integration Protocol (Placeholder Spec)
 
-**Status: draft, unimplemented against real hardware.** The SRS (§2, §3.2) requires the
+**Status: draft, unimplemented against real hardware.** The SRS (2, 3.2) requires the
 system to accept visitor PIN/QR input at a gate intercom and trigger a physical relay, but
 no specific intercom brand, model, or firmware has been selected yet (Phase 1 deliverable:
 "hardware integration protocol definition"). This document defines the contract so that
@@ -46,7 +46,7 @@ Called every time a visitor enters a PIN or a QR code is scanned.
 }
 ```
 
-Target latency per SRS §3.2: **under 1.5 seconds** end-to-end under normal network
+Target latency per SRS 3.2: **under 1.5 seconds** end-to-end under normal network
 conditions. The device should have its own timeout (recommend 2–3s) and fall back to
 `DENY` + a "try again / call guard" message on timeout, never fail open.
 
@@ -58,7 +58,7 @@ Recommended every 30–60s so the admin portal's live connectivity monitor is ac
 { "gateId": "clx...", "bufferedCodesCount": 0 }
 ```
 
-## Offline Buffer Mode (SRS §3.2 — hardware-dependent, not yet implemented)
+## Offline Buffer Mode (SRS 3.2 — hardware-dependent, not yet implemented)
 
 The SRS requires gate hardware to cache valid codes locally during an internet outage.
 This is inherently a **device-side** feature since the backend is unreachable during the
@@ -71,10 +71,10 @@ outage by definition. The contract this backend exposes to support it:
   batched call (e.g. `POST /api/gate/offline-sync`, not yet built) so entry logs stay
   complete, marking them with a `wasOfflineValidation: true` flag.
 - Until a device with confirmed local-storage capability is chosen, the documented
-  failsafe per SRS §4 is a **fallback guard call button** — no code changes needed for
+  failsafe per SRS 4 is a **fallback guard call button** — no code changes needed for
   that path since it doesn't touch this API.
 
-## Audio/Visual feedback (SRS §3.2)
+## Audio/Visual feedback (SRS 3.2)
 
 Device-local concern: on `gateAction: "OPEN"` show green/beep, on `"DENY"` show
 red/audio message using `message` from the response. No backend work required.

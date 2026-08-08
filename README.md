@@ -1,7 +1,7 @@
 # Ultra-Guard Visitor Access Management System — MVP
 
 Implementation of `SRS_Visitor_Access_System.pdf`, scoped to **Phase 1 (Design & API
-Protocols)** and **Phase 2 (Mobile App & Backend Development)** per the SRS's §5
+Protocols)** and **Phase 2 (Mobile App & Backend Development)** per the SRS's 5
 implementation phases. Phases 3 (physical intercom hardware integration/pilot) and 4
 (app store deployment/staff training) are out of scope until real gate/intercom
 hardware is selected — see "Hardware integration" below.
@@ -16,9 +16,59 @@ hardware is selected — see "Hardware integration" below.
 Run the backend first (`ultraguard-admin-backend`), then the mobile app
 (`ultraguard-resident-app`) pointed at it — see each project's README for setup.
 
+## Running everything
+
+From this root folder (after each project's own one-time `npm install` / `npx prisma
+migrate dev` — see their READMEs):
+
+```bash
+npm install          # installs concurrently, used by start:all
+npm run start:all    # runs the backend (Next.js) and the mobile app (Expo) together
+```
+
+`start:all` is just `concurrently` running `dev:backend` and `dev:mobile` side by side
+with labeled, colored output — you can also run either alone (`npm run dev:backend`,
+`npm run dev:mobile`).
+
+## Testing the mobile app
+
+1. `npm run start:all`, then open the app in Expo Go / a simulator (see the mobile
+   README for connecting a physical device or emulator to the right API URL).
+2. **No phone number needs to be pre-registered.** `POST /api/auth/resident/request-otp`
+   auto-creates a resident record on first sign-in (`prisma.resident.upsert` in
+   `ultraguard-admin-backend/src/app/api/auth/resident/request-otp/route.ts`) — enter
+   any phone number on the login screen and it just works. The seeded resident
+   (`+27820000000`, see the backend README) is only useful if you want a resident that
+   already has a name/unit assigned; everyone else starts as "New Resident" with no
+   unit until an admin assigns one via the API.
+3. Since no SMS provider is connected yet, the login screen itself displays the OTP
+   (labeled "No SMS Gateway Connected Yet") instead of texting it — just tap Continue.
+   This only happens while the backend's `OTP_DEV_MODE=true`; flip it to `false` once a
+   real provider is wired up and this UI naturally stops appearing (the API stops
+   returning `devOtp`).
+4. From there: invite a visitor, view the generated PIN/QR, and simulate a gate
+   scan by POSTing to `/api/gate/validate` yourself (see the backend README's curl
+   examples) — there's no real intercom to walk up to yet.
+
+## Building an installable app
+
+All scripts below run from this root folder.
+
+| Script | What it does | Requirements |
+|---|---|---|
+| `npm run android:apk` | Builds an Android APK **in the cloud** via Expo's EAS Build | Free Expo account, one-time `npx eas-cli login` (the script tells you if you're not logged in) |
+| `npm run android:apk:local` | Builds an Android **debug** APK entirely on this machine, installs it via `adb` if a device is connected | JDK 17+ and a full Android SDK (not just `platform-tools`) — the script checks and tells you exactly what's missing rather than failing obscurely |
+| `npm run ios:build` | Builds an installable (ad-hoc) iOS app **in the cloud** via EAS Build | Free Expo account + a **paid Apple Developer Program account (US$99/yr)** — installing on a real iPhone without going through the App Store is an Apple platform requirement, not something any tooling can route around. First run is interactive (Apple ID login, device registration). |
+
+There is no path to a local (non-cloud) iOS build on Windows — Apple only allows
+building iOS apps with Xcode on macOS. `android:apk` (cloud) works today on this
+machine without installing anything else, since a full local Android SDK + JDK 17
+isn't currently set up here (only `platform-tools`/`adb` is present, and the system
+Java is version 8). `android:apk:local` is there for whenever that changes.
+
 ## What's done vs. not done, per the SRS
 
-### §3.1 Resident Mobile Application Features
+### 3.1 Resident Mobile Application Features
 
 | Requirement | Status |
 |---|---|
@@ -31,7 +81,7 @@ Run the backend first (`ultraguard-admin-backend`), then the mobile app
 | Fingerprint/Face ID quick login | ❌ Not built |
 | Multi-property management | ⚠️ Data model supports it (`ResidentUnit`); no UI picker built |
 
-### §3.2 Gate Intercom & Hardware Integration Interface
+### 3.2 Gate Intercom & Hardware Integration Interface
 
 | Requirement | Status |
 |---|---|
@@ -46,7 +96,7 @@ exposes a hardware-agnostic HTTP contract (`/api/gate/validate`, `/api/gate/hear
 [`ultraguard-admin-backend/docs/HARDWARE_INTEGRATION_PROTOCOL.md`](ultraguard-admin-backend/docs/HARDWARE_INTEGRATION_PROTOCOL.md).
 `TO_LEARN.md` in this folder has the vendor questions to ask before Phase 3 starts.
 
-### §3.3 Security Company Management Portal (Web-Based)
+### 3.3 Security Company Management Portal (Web-Based)
 
 | Requirement | Status |
 |---|---|
@@ -55,7 +105,7 @@ exposes a hardware-agnostic HTTP contract (`/api/gate/validate`, `/api/gate/hear
 | Audit trail & reporting (API) | ✅ Built (entry logs are queryable/filterable) |
 | **Web dashboard UI** | ❌ Not built — per your instructions this MVP delivers **API endpoints only** for the admin portal, no frontend. The API is ready for a dashboard to be built against it whenever that's prioritized. |
 
-### §4 Non-Functional & Security Requirements
+### 4 Non-Functional & Security Requirements
 
 | Requirement | Status |
 |---|---|

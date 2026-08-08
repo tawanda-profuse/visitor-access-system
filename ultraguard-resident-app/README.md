@@ -30,8 +30,13 @@ You can also override without editing app.json via an env var:
 ## What's implemented (Phase 2 scope)
 
 - **Auth**: phone number + OTP sign-in (`app/login.tsx`, `app/verify.tsx`), session
-  persisted in `expo-secure-store`. (Biometric/Face ID quick-login and multi-property
-  switching are not implemented — see top-level README for what's deferred.)
+  persisted in `expo-secure-store`. No phone number needs to be pre-registered — the
+  backend auto-creates a resident on first OTP request. Since no SMS provider is
+  connected yet, the login screen itself displays the OTP in a "No SMS Gateway
+  Connected Yet" card (rather than texting it) so the app is fully testable without a
+  real SMS account; this disappears automatically once the backend's `OTP_DEV_MODE` is
+  turned off. (Biometric/Face ID quick-login and multi-property switching are not
+  implemented — see top-level README for what's deferred.)
 - **Invite Visitor** (`app/(tabs)/invite.tsx`): generate One-Time, Time-Bound, or
   Recurring passes with a visitor name/phone, date/time window, and (for recurring)
   day-of-week + daily time window.
@@ -51,6 +56,25 @@ You can also override without editing app.json via an env var:
   flow is wired end-to-end yet. Also note: real remote push requires an Expo
   **development build**, not Expo Go, as of SDK 53+; local dev in Expo Go will skip
   registration gracefully on simulators/if permission is denied.
+
+## Building an installable app
+
+See the top-level README's "Building an installable app" section for the full picture
+(requirements, costs, what runs today vs. needs more setup). Scripts, runnable from
+either this folder or the repo root:
+
+- `npm run build:android:apk` (root: `npm run android:apk`) — Android APK via EAS cloud
+  build. Needs a free Expo account and `npx eas-cli login` once.
+- `npm run build:android:apk:local` (root: `npm run android:apk:local`) — Android debug
+  APK built entirely locally via Gradle. Needs JDK 17+ and a full Android SDK; the
+  script (`scripts/build-android-apk-local.js`) checks both and tells you what's
+  missing rather than failing with a raw Gradle error.
+- `npm run build:ios` (root: `npm run ios:build`) — installable (ad-hoc) iOS build via
+  EAS cloud. Needs a free Expo account **and** a paid Apple Developer Program account;
+  there is no local-build option on Windows since Apple requires Xcode on macOS.
+
+Build profiles live in `eas.json` (`preview` outputs an installable `.apk`/ad-hoc
+`.ipa`; `development` is for Expo dev-client builds).
 
 ## Design system
 
