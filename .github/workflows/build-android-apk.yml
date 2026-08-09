@@ -15,6 +15,14 @@ jobs:
       run:
         working-directory: ultraguard-resident-app
     steps:
+      # The build failed once with "No space left on device" compiling native modules
+      # for all 4 ABIs — GitHub's standard runners have limited free disk, most of it
+      # taken by preinstalled toolchains this workflow never uses.
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk /opt/ghc /opt/hostedtoolcache/CodeQL "$AGENT_TOOLSDIRECTORY"
+          df -h /
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -25,6 +33,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle
 
       - uses: android-actions/setup-android@v3
 
@@ -36,6 +45,11 @@ jobs:
 
       - name: Build debug APK
         working-directory: ultraguard-resident-app/android
+        # Debug builds compile native code (reanimated, svg, screens, etc.) for all 4
+        # ABIs by default, ~4x the native compile time. arm64-v8a alone covers virtually
+        # every real device sold since ~2018, which is what this APK is actually for.
+        env:
+          ORG_GRADLE_PROJECT_reactNativeArchitectures: arm64-v8a
         run: ./gradlew assembleDebug
 
       - uses: actions/upload-artifact@v4
