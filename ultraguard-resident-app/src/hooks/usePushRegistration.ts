@@ -1,16 +1,19 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { registerPushToken } from "@/api/resident";
 
-// Remote push notifications were removed from Expo Go on Android as of SDK 53 — calling
-// the notification APIs there throws instead of just no-opping, so the whole flow must
-// be skipped in Expo Go and only run in a development build / standalone app.
+// Remote push notifications were removed from Expo Go on Android as of SDK 53 — merely
+// importing expo-notifications there evaluates code deep in its module graph that
+// throws, so a runtime guard around *usage* isn't enough (a static `import` is always
+// evaluated regardless of any check around its call sites). The module must never be
+// require()'d at all when running in Expo Go, hence the dynamic require below instead
+// of a top-level import.
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 if (!isExpoGo) {
+  const Notifications = require("expo-notifications");
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -37,6 +40,7 @@ export function usePushRegistration(token: string | null) {
 
     (async () => {
       try {
+        const Notifications = require("expo-notifications");
         if (Platform.OS === "android") {
           await Notifications.setNotificationChannelAsync("default", {
             name: "default",
