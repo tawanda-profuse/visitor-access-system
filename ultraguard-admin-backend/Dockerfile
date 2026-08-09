@@ -19,7 +19,6 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 # build doesn't trace/copy (only the generated @prisma/client is imported by app code).
 RUN npm install -g prisma@5.19.1
 
-COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
