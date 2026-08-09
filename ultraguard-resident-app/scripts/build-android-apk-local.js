@@ -89,12 +89,84 @@ if (!sdkRoot || !hasBuildTools || !hasPlatforms) {
   );
 }
 
+// --- Windows only: stage a short-path mirror of the project ------------------
+// The native C++ codegen build (react-native-svg, safe-area-context, screens, etc.)
+// mirrors each source file's full path into nested .cxx/CMakeFiles object-file
+// directories. With this repo's path depth, that mirrored path exceeds Windows'
+// 260-character MAX_PATH, and ninja fails with "Filename longer than 260 characters".
+// A drive-substitution/junction trick doesn't fix this: Gradle's Java-based codegen
+// tasks canonicalize such paths back to the real long path (while other tools in the
+// same build don't), producing a "this and base files have different roots" failure
+// instead. The only reliable fix is a genuinely short real path — so on Windows, mirror
+// the whole project to one via robocopy (incremental after the first run) and build
+// there, then copy the resulting APK back to this repo's builds/ folder.
+// Finds node_modules/<pkg-or-@scope/pkg>/android/{build,.cxx} and .../ios/build —
+// per-package native build output that Gradle/CMake regenerate from scratch on every
+// build anyway. Mirroring them wastes disk (they can run into gigabytes across
+// packages) and risks copying artifacts that embed the old long path.
+function findStaleBuildArtifactDirs(nodeModulesDir) {
+  const found = [];
+  if (!fs.existsSync(nodeModulesDir)) return found;
+  const packageDirs = [];
+  for (const entry of fs.readdirSync(nodeModulesDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith("@")) {
+      const scopeDir = path.join(nodeModulesDir, entry.name);
+      for (const scoped of fs.readdirSync(scopeDir, { withFileTypes: true })) {
+        if (scoped.isDirectory()) packageDirs.push(path.join(scopeDir, scoped.name));
+      }
+    } else {
+      packageDirs.push(path.join(nodeModulesDir, entry.name));
+    }
+  }
+  for (const pkgDir of packageDirs) {
+    for (const rel of [["android", "build"], ["android", ".cxx"], ["ios", "build"]]) {
+      const candidate = path.join(pkgDir, ...rel);
+      if (fs.existsSync(candidate)) found.push(candidate);
+    }
+  }
+  return found;
+}
+
+let buildRoot = projectRoot;
+if (isWindows) {
+  const stagingRoot = "C:\\uga-android-build";
+  console.log(`Windows: mirroring project to ${stagingRoot} to avoid a MAX_PATH failure in the native build...`);
+  fs.mkdirSync(stagingRoot, { recursive: true });
+  // Full paths, not bare names — /XD matches by name anywhere in the tree, and several
+  // node_modules packages have their own (needed) "android"/"ios" subfolders.
+  const staleBuildDirs = findStaleBuildArtifactDirs(path.join(projectRoot, "node_modules"));
+  const roboArgs = [
+    projectRoot,
+    stagingRoot,
+    "/MIR",
+    "/XD",
+    path.join(projectRoot, "android"),
+    path.join(projectRoot, "ios"),
+    path.join(projectRoot, ".expo"),
+    path.join(projectRoot, "builds"),
+    ...staleBuildDirs,
+    "/NFL",
+    "/NDL",
+    "/NJH",
+    "/R:1",
+    "/W:1",
+  ];
+  const roboResult = spawnSync("robocopy", roboArgs, { stdio: "inherit", shell: true });
+  // Robocopy's exit code is a bitmask where 0-7 mean success (files copied/matched/etc.);
+  // only >=8 is a real failure. It is not a normal 0-means-success exit code.
+  if ((roboResult.status ?? 0) >= 8) {
+    fail(`robocopy failed while staging the project to ${stagingRoot} (exit code ${roboResult.status}).`);
+  }
+  buildRoot = stagingRoot;
+}
+
 console.log(`Using Android SDK at ${sdkRoot}`);
 console.log("Generating native android/ project (expo prebuild)...");
-run("npx", ["expo", "prebuild", "--platform", "android"], { cwd: projectRoot });
+run("npx", ["expo", "prebuild", "--platform", "android"], { cwd: buildRoot });
 
 console.log("Building debug APK (gradlew assembleDebug)...");
-const androidDir = path.join(projectRoot, "android");
+const androidDir = path.join(buildRoot, "android");
 // Use the absolute path rather than a bare "gradlew.bat"/"./gradlew" — with shell:true,
 // cmd.exe on Windows doesn't reliably resolve a bare relative filename against `cwd`.
 // It's quoted because with shell:true, Node just joins command+args with spaces before
