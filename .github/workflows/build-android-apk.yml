@@ -19,6 +19,7 @@ jobs:
       # for all 4 ABIs — GitHub's standard runners have limited free disk, most of it
       # taken by preinstalled toolchains this workflow never uses.
       - name: Free up disk space
+        working-directory: .
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk /opt/ghc /opt/hostedtoolcache/CodeQL "$AGENT_TOOLSDIRECTORY"
           df -h /
