@@ -36,6 +36,8 @@
       ],
       "@react-native-community/datetimepicker"
     ],
-    "extra": {}
+    "extra": {
+      "apiBaseUrl": "https://ul-6112ec579e2f412f86edfa3d8f90d458.ecs.ap-southeast-1.on.aws"
+    }
   }
 }

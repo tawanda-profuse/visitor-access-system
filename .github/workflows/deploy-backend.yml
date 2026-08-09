@@ -1,0 +1,61 @@
+name: Deploy backend to ECS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ultraguard-admin-backend/**"
+      - ".github/workflows/deploy-backend.yml"
+
+permissions:
+  id-token: write # required for OIDC -> AWS role assumption
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY: ultraguard-admin-backend
+  SERVICE_ARN: arn:aws:ecs:ap-southeast-1:077578771346:service/default/ultraguard-admin-backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ultraguard-admin-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::077578771346:role/github-actions-ultraguard-backend-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr-login
+
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
+          docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Roll out new image, preserving existing env vars
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          aws ecs describe-express-gateway-service \
+            --service-arn "$SERVICE_ARN" \
+            --query 'service.activeConfigurations[0].primaryContainer' \
+            > current-container.json
+
+          jq --arg image "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            '{image: $image, containerPort, environment}' \
+            current-container.json > new-container.json
+
+          aws ecs update-express-gateway-service \
+            --service-arn "$SERVICE_ARN" \
+            --primary-container "file://new-container.json" \
+            --health-check-path "/api/health"

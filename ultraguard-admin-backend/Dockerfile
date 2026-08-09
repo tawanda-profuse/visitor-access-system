@@ -1,5 +1,10 @@
-FROM node:20-alpine AS base
+# Debian slim, not Alpine: Prisma's engine binaries need glibc + a detectable OpenSSL
+# version. Alpine (musl) needs extra binaryTargets config and still trips on OpenSSL
+# auto-detection: https://www.prisma.io/docs/orm/prisma-client/deployment/traditional
+FROM node:20-slim AS base
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps
 COPY package.json package-lock.json* ./
@@ -14,14 +19,12 @@ RUN npm run build
 
 FROM base AS runner
 ENV NODE_ENV=production
-RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
-# `prisma migrate deploy` at boot needs the `prisma` CLI, which the Next.js standalone
-# build doesn't trace/copy (only the generated @prisma/client is imported by app code).
-RUN npm install -g prisma@5.19.1
+RUN groupadd --gid 1001 nodejs && useradd --uid 1001 --gid nodejs nextjs
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
@@ -30,5 +33,6 @@ EXPOSE 3000
 ENV PORT=3000
 # Runs pending Prisma migrations against DATABASE_URL, then starts the server. Baked
 # into the image (rather than a host-specific "release command") so it works the same
-# way on any Docker host.
-CMD ["sh", "-c", "prisma migrate deploy && node server.js"]
+# way on any Docker host. Invokes the CLI's entry file directly since there's no
+# node_modules/.bin symlink for a non-globally-installed `prisma` package.
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
