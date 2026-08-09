@@ -34,7 +34,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-          cache: gradle
+          # Not cache: gradle here — it hashes gradle wrapper files to build a cache
+          # key, but those only exist after `expo prebuild` generates android/, which
+          # hasn't run yet at this point in the job.
 
       - uses: android-actions/setup-android@v3
 
@@ -44,17 +46,25 @@ jobs:
       - name: Generate native android/ project
         run: npx expo prebuild --platform android
 
-      - name: Build debug APK
+      - name: Build release APK
         working-directory: ultraguard-resident-app/android
+        # A debug build doesn't embed the JS bundle — it loads it live from a Metro dev
+        # server, which is why it demands a USB/Wi-Fi connection to a dev machine
+        # regardless of API config. A release build embeds the JS bundle at build time
+        # and only makes real HTTPS calls to whatever apiBaseUrl got baked into app.json,
+        # with no Metro dependency. Expo's default template signs release builds with
+        # the debug keystore unless a real release keystore is configured, which is
+        # fine for sideloaded testing (not for a Play Store submission).
+        #
         # Debug builds compile native code (reanimated, svg, screens, etc.) for all 4
         # ABIs by default, ~4x the native compile time. arm64-v8a alone covers virtually
         # every real device sold since ~2018, which is what this APK is actually for.
         env:
           ORG_GRADLE_PROJECT_reactNativeArchitectures: arm64-v8a
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleRelease
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ultraguard-resident-debug-apk
-          path: ultraguard-resident-app/android/app/build/outputs/apk/debug/app-debug.apk
+          name: ultraguard-resident-release-apk
+          path: ultraguard-resident-app/android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
