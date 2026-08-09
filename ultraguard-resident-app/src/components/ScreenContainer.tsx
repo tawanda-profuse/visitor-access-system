@@ -1,5 +1,6 @@
 import React from "react";
-import { RefreshControlProps, SafeAreaView, ScrollView, StyleSheet, View, ViewStyle } from "react-native";
+import { RefreshControlProps, ScrollView, StyleSheet, View, ViewStyle } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTheme } from "@/theme/ThemeContext";
 
 type Props = {

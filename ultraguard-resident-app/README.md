@@ -17,15 +17,20 @@ there too and it's the fastest way to sanity-check UI changes without a device).
 
 ### Pointing at the backend
 
-By default the app calls `http://localhost:3000` (see `app.json`'s `expo.extra.apiBaseUrl`
-and `src/constants/config.ts`). That works for the iOS Simulator and web. For:
+See `src/constants/config.ts` for the resolution order. `localhost` only resolves to the
+right machine on web, so it's used as the default there. On native (iOS/Android), the app
+instead derives the dev machine's LAN IP from the Metro dev server URL automatically —
+this covers the common case of an Expo Go / dev-client device on the same Wi-Fi network
+as your dev machine.
 
-- **Android emulator**: change it to `http://10.0.2.2:3000`.
-- **A physical device**: change it to your computer's LAN IP, e.g. `http://192.168.1.50:3000`
-  (the device and your dev machine must be on the same network).
+That auto-detection doesn't help when:
 
-You can also override without editing app.json via an env var:
-`EXPO_PUBLIC_API_BASE_URL=http://192.168.1.50:3000 npm start`.
+- The device only has a USB connection with no shared Wi-Fi network (run
+  `adb reverse tcp:3000 tcp:3000` on Android, or set the override below).
+- You're pointing at a deployed backend (e.g. a Koyeb app) instead of your dev machine.
+
+For those cases, set an explicit override — either `expo.extra.apiBaseUrl` in `app.json`,
+or an env var: `EXPO_PUBLIC_API_BASE_URL=http://192.168.1.50:3000 npm start`.
 
 ## What's implemented (Phase 2 scope)
 

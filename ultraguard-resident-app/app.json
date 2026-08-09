@@ -36,8 +36,6 @@
       ],
       "@react-native-community/datetimepicker"
     ],
-    "extra": {
-      "apiBaseUrl": "http://localhost:3000"
-    }
+    "extra": {}
   }
 }

@@ -2,18 +2,25 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
-import Constants from "expo-constants";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { registerPushToken } from "@/api/resident";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Remote push notifications were removed from Expo Go on Android as of SDK 53 — calling
+// the notification APIs there throws instead of just no-opping, so the whole flow must
+// be skipped in Expo Go and only run in a development build / standalone app.
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 /**
  * Registers this device for push notifications and sends the Expo push token to the
@@ -26,7 +33,7 @@ Notifications.setNotificationHandler({
  */
 export function usePushRegistration(token: string | null) {
   useEffect(() => {
-    if (!token) return;
+    if (!token || isExpoGo) return;
 
     (async () => {
       try {
