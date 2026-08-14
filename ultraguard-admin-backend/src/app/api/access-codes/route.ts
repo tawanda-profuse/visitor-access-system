@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
 
     const accessCodes = await prisma.accessCode.findMany({
       where,
+      include: { resident: true },
       orderBy: { createdAt: "desc" },
     });
 

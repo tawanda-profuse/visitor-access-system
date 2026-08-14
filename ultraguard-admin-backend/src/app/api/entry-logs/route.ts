@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     const entryLogs = await prisma.entryLog.findMany({
       where,
-      include: { gate: true, accessCode: true },
+      include: { gate: true, accessCode: true, resident: true },
       orderBy: { occurredAt: "desc" },
       take: limit,
     });
