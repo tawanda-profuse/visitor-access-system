@@ -48,6 +48,7 @@ export default function PanicAlertsPage() {
       {error ? <div className="ug-banner ug-banner-danger">{error}</div> : null}
 
       <div className="ug-card">
+        <div className="ug-table-scroll">
         <table className="ug-table">
           <thead>
             <tr>
@@ -78,7 +79,7 @@ export default function PanicAlertsPage() {
                 <tr key={alert.id}>
                   <td>{alert.resident?.name ?? "—"}</td>
                   <td>{alert.property?.name ?? "—"}</td>
-                  <td>{alert.message ?? "—"}</td>
+                  <td className="ug-cell-wrap">{alert.message ?? "—"}</td>
                   <td>{new Date(alert.createdAt).toLocaleString()}</td>
                   <td>
                     <StatusBadge status={alert.status} />
@@ -103,6 +104,7 @@ export default function PanicAlertsPage() {
             )}
           </tbody>
         </table>
+        </div>
         {pagination ? <PaginationBar pagination={pagination} onPageChange={setPage} /> : null}
       </div>
     </>

@@ -67,6 +67,7 @@ export default function DashboardPage() {
                 View all
               </Link>
             </div>
+            <div className="ug-table-scroll">
             <table className="ug-table">
               <thead>
                 <tr>
@@ -101,6 +102,7 @@ export default function DashboardPage() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}

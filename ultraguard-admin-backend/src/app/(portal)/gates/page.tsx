@@ -45,6 +45,7 @@ export default function GatesPage() {
       {error ? <div className="ug-banner ug-banner-danger">{error}</div> : null}
 
       <div className="ug-card">
+        <div className="ug-table-scroll">
         <table className="ug-table">
           <thead>
             <tr>
@@ -81,6 +82,7 @@ export default function GatesPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {showAdd ? (

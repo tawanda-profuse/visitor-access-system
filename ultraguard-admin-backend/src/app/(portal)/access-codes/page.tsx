@@ -67,6 +67,7 @@ export default function AccessCodesPage() {
       </div>
 
       <div className="ug-card">
+        <div className="ug-table-scroll">
         <table className="ug-table">
           <thead>
             <tr>
@@ -121,6 +122,7 @@ export default function AccessCodesPage() {
             )}
           </tbody>
         </table>
+        </div>
         {pagination ? <PaginationBar pagination={pagination} onPageChange={setPage} /> : null}
       </div>
     </>

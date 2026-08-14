@@ -152,6 +152,7 @@ export default function EntryLogsPage() {
       </div>
 
       <div className="ug-card">
+        <div className="ug-table-scroll">
         <table className="ug-table">
           <thead>
             <tr>
@@ -188,12 +189,13 @@ export default function EntryLogsPage() {
                   <td>
                     <StatusBadge status={log.result} />
                   </td>
-                  <td>{log.reason ?? "—"}</td>
+                  <td className="ug-cell-wrap">{log.reason ?? "—"}</td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+        </div>
         {pagination ? <PaginationBar pagination={pagination} onPageChange={setPage} /> : null}
       </div>
     </>

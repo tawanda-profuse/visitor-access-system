@@ -66,6 +66,7 @@ export default function PropertiesPage() {
                   + Add Unit
                 </button>
               </div>
+              <div className="ug-table-scroll">
               <table className="ug-table">
                 <thead>
                   <tr>
@@ -84,7 +85,7 @@ export default function PropertiesPage() {
                     property.units.map((unit) => (
                       <tr key={unit.id}>
                         <td>{unit.label}</td>
-                        <td>
+                        <td className="ug-cell-wrap">
                           {unit.residents && unit.residents.length > 0
                             ? unit.residents.map((ru) => ru.resident?.name).filter(Boolean).join(", ")
                             : "—"}
@@ -94,6 +95,7 @@ export default function PropertiesPage() {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           ))}
         </div>

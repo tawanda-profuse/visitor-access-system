@@ -103,6 +103,7 @@ export default function ResidentsPage() {
       </div>
 
       <div className="ug-card">
+        <div className="ug-table-scroll">
         <table className="ug-table">
           <thead>
             <tr>
@@ -133,8 +134,8 @@ export default function ResidentsPage() {
                 <tr key={resident.id}>
                   <td>{resident.name}</td>
                   <td>{resident.phone}</td>
-                  <td>{resident.email ?? "—"}</td>
-                  <td>{resident.address ?? "—"}</td>
+                  <td className="ug-cell-wrap">{resident.email ?? "—"}</td>
+                  <td className="ug-cell-wrap">{resident.address ?? "—"}</td>
                   <td>
                     {resident.units.length > 0
                       ? resident.units.map((ru) => ru.unit?.label).filter(Boolean).join(", ")
@@ -174,6 +175,7 @@ export default function ResidentsPage() {
             )}
           </tbody>
         </table>
+        </div>
         {pagination ? <PaginationBar pagination={pagination} onPageChange={setPage} /> : null}
       </div>
 
