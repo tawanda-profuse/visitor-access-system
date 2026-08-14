@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
 import { generateOtp, hashOtp, otpExpiryDate, sendOtpSms } from "@/lib/otp";
 import { normalizePhone } from "@/lib/phone";
+import { getSupportEmail } from "@/lib/settings";
 
 export const runtime = "nodejs";
 
@@ -22,8 +23,9 @@ export async function POST(req: NextRequest) {
 
     const resident = await prisma.resident.findUnique({ where: { phone } });
     if (!resident || resident.status !== "ACTIVE") {
+      const supportEmail = await getSupportEmail();
       throw new ApiError(
-        "This phone number is not registered with Ultra-Guard. If you believe this is a mistake, please contact xrthemc@gmail.com.",
+        `This phone number is not registered with Ultra-Guard. If you believe this is a mistake, please contact ${supportEmail}.`,
         403,
       );
     }

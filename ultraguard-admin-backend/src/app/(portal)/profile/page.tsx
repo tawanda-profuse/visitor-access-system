@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { useAuth, type AdminUser } from "@/lib/auth-context";
@@ -14,6 +14,7 @@ export default function ProfilePage() {
       <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: 480 }}>
         <ProfileDetailsForm admin={admin} onSaved={updateAdmin} />
         <PasswordForm />
+        <SupportEmailForm />
       </div>
     </>
   );
@@ -142,6 +143,67 @@ function PasswordForm() {
         </div>
         <button type="submit" className="ug-btn ug-btn-primary" disabled={submitting}>
           {submitting ? "Saving…" : "Change Password"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function SupportEmailForm() {
+  const [supportEmail, setSupportEmail] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    apiFetch<{ supportEmail: string }>("/api/admin/settings")
+      .then((data) => setSupportEmail(data.supportEmail))
+      .catch((err) => setError(err instanceof ApiClientError ? err.message : "Failed to load settings"))
+      .finally(() => setLoaded(true));
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setSubmitting(true);
+    try {
+      const data = await apiFetch<{ supportEmail: string }>("/api/admin/settings", {
+        method: "PATCH",
+        body: { supportEmail },
+      });
+      setSupportEmail(data.supportEmail);
+      setSuccess("Support email updated.");
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Failed to update support email");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="ug-card ug-card-pad">
+      <h2 style={{ fontSize: "1rem", margin: "0 0 0.4rem" }}>Support Contact</h2>
+      <p style={{ color: "var(--ug-text-secondary)", fontSize: "0.85rem", margin: "0 0 1rem" }}>
+        Shown to residents who are denied access to the mobile app (e.g. an unregistered phone number).
+      </p>
+      {error ? <div className="ug-banner ug-banner-danger">{error}</div> : null}
+      {success ? <div className="ug-banner ug-banner-success">{success}</div> : null}
+      <form onSubmit={handleSubmit}>
+        <div className="ug-field">
+          <label className="ug-label">Support Email</label>
+          <input
+            className="ug-input"
+            type="email"
+            value={supportEmail}
+            onChange={(e) => setSupportEmail(e.target.value)}
+            required
+            disabled={!loaded}
+          />
+        </div>
+        <button type="submit" className="ug-btn ug-btn-primary" disabled={submitting || !loaded}>
+          {submitting ? "Saving…" : "Save Support Email"}
         </button>
       </form>
     </div>
