@@ -1,0 +1,5 @@
+- Enforce that users must enter country code on login screen.
+- Determine icon sizes for accuracy
+- SMS integration
+- Re-deploy to digital ocean
+- Intercom Hardware integration
