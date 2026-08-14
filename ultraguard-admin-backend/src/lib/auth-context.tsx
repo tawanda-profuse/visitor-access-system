@@ -16,6 +16,7 @@ type AuthContextValue = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateAdmin: (admin: AdminUser) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -64,7 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }, [router]);
 
-  return <AuthContext.Provider value={{ admin, loading, login, logout }}>{children}</AuthContext.Provider>;
+  const updateAdmin = useCallback((next: AdminUser) => {
+    setAdmin(next);
+  }, []);
+
+  return <AuthContext.Provider value={{ admin, loading, login, logout, updateAdmin }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

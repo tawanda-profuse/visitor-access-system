@@ -73,6 +73,13 @@ model Admin {
   resolvedPanicAlerts PanicAlert[] @relation("ResolvedBy")
 }
 
+// Single shared row of admin-configurable, system-wide settings (see src/lib/settings.ts).
+model SystemSetting {
+  id           String   @id @default("singleton")
+  supportEmail String   @default("xrthemc@gmail.com")
+  updatedAt    DateTime @updatedAt
+}
+
 model Resident {
   id           String    @id @default(cuid())
   name         String
