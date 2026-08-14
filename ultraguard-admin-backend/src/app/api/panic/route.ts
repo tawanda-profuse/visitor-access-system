@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
 import { requireResident, verifyToken, getBearerToken } from "@/lib/auth";
+import { parsePagination, buildPaginationMeta } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -13,13 +14,24 @@ export async function GET(req: NextRequest) {
     const payload = verifyToken(getBearerToken(req));
     const where = payload.subjectType === "resident" ? { residentId: payload.residentId } : {};
 
-    const panicAlerts = await prisma.panicAlert.findMany({
-      where,
-      include: { resident: true, property: true, resolvedBy: true },
-      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    });
+    // Pagination only applies to the admin portal — the resident app has no pagination UI
+    // and expects its own (naturally small) alert history back in full.
+    const pagination = payload.subjectType !== "resident" ? parsePagination(req) : null;
 
-    return ok({ panicAlerts });
+    const [panicAlerts, total] = await Promise.all([
+      prisma.panicAlert.findMany({
+        where,
+        include: { resident: true, property: true, resolvedBy: true },
+        orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+        ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}),
+      }),
+      prisma.panicAlert.count({ where }),
+    ]);
+
+    return ok({
+      panicAlerts,
+      ...(pagination ? { pagination: buildPaginationMeta(pagination.page, pagination.pageSize, total) } : {}),
+    });
   } catch (error) {
     return handleApiError(error);
   }

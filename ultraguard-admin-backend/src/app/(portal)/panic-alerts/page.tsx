@@ -4,29 +4,38 @@ import { useEffect, useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import type { PanicAlert } from "@/lib/types";
+import { PaginationBar } from "@/components/PaginationBar";
+import type { PanicAlert, Pagination } from "@/lib/types";
+
+const PAGE_SIZE = 20;
 
 export default function PanicAlertsPage() {
   const [alerts, setAlerts] = useState<PanicAlert[] | null>(null);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
+  async function load(pageNum: number) {
     try {
-      const data = await apiFetch<{ panicAlerts: PanicAlert[] }>("/api/panic");
+      const data = await apiFetch<{ panicAlerts: PanicAlert[]; pagination: Pagination }>("/api/panic", {
+        params: { page: String(pageNum), pageSize: String(PAGE_SIZE) },
+      });
       setAlerts(data.panicAlerts);
+      setPagination(data.pagination);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Failed to load panic alerts");
     }
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    load(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   async function updateStatus(alert: PanicAlert, status: "ACKNOWLEDGED" | "RESOLVED") {
     try {
       await apiFetch(`/api/panic/${alert.id}`, { method: "PATCH", body: { status } });
-      load();
+      load(page);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Failed to update alert");
     }
@@ -94,6 +103,7 @@ export default function PanicAlertsPage() {
             )}
           </tbody>
         </table>
+        {pagination ? <PaginationBar pagination={pagination} onPageChange={setPage} /> : null}
       </div>
     </>
   );

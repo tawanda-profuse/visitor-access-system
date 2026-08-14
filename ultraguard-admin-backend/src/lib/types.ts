@@ -1,3 +1,10 @@
+export type Pagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
 export type Property = {
   id: string;
   name: string;
@@ -35,6 +42,8 @@ export type Resident = {
   city: string | null;
   country: string | null;
   address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   status: "ACTIVE" | "SUSPENDED" | "REMOVED";
   createdAt: string;
   units: ResidentUnit[];

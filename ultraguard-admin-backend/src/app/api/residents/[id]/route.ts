@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
 import { requireAdmin } from "@/lib/auth";
 import { buildAddress } from "@/lib/address";
+import { normalizePhone } from "@/lib/phone";
 
 export const runtime = "nodejs";
 
@@ -31,13 +32,16 @@ const patchSchema = z.object({
   streetName: z.string().min(1).nullable().optional(),
   city: z.string().min(1).nullable().optional(),
   country: z.string().min(1).nullable().optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
 });
 
 // PATCH /api/residents/:id — Admin: edit profile / suspend / remove (soft delete via status).
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     requireAdmin(req, ["SUPER_ADMIN", "OPERATOR"]);
-    const body = patchSchema.parse(await req.json());
+    const parsed = patchSchema.parse(await req.json());
+    const body = parsed.phone !== undefined ? { ...parsed, phone: normalizePhone(parsed.phone) } : parsed;
 
     const addressFieldsTouched =
       body.houseNumber !== undefined ||

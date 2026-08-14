@@ -21,6 +21,10 @@ FROM base AS runner
 ENV NODE_ENV=production
 RUN groupadd --gid 1001 nodejs && useradd --uid 1001 --gid nodejs nextjs
 
+# Next.js's standalone output does NOT include the public/ folder — it must be copied in
+# manually (https://nextjs.org/docs/app/api-reference/config/next-config-js/output),
+# otherwise static assets like the sidebar/login logo 404 in production.
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma

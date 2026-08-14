@@ -272,7 +272,8 @@ button {
 .ug-sidebar-logo {
   display: flex;
   align-items: center;
-  padding: 0.25rem 0.5rem 1.5rem;
+  margin-bottom: 1.5rem;
+  background: white;
 }
 
 .ug-sidebar-nav {
@@ -484,4 +485,22 @@ button {
   align-items: center;
   justify-content: center;
   background: var(--ug-bg);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Pagination                                                              */
+/* ---------------------------------------------------------------------- */
+
+.ug-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  flex-wrap: wrap;
+}
+
+.ug-pagination-summary {
+  color: var(--ug-text-secondary);
+  font-size: 0.82rem;
 }

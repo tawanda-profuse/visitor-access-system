@@ -4,28 +4,38 @@ import { useEffect, useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import type { AccessCode } from "@/lib/types";
+import { PaginationBar } from "@/components/PaginationBar";
+import type { AccessCode, Pagination } from "@/lib/types";
 
 const STATUS_OPTIONS = ["ACTIVE", "USED", "EXPIRED", "REVOKED"];
+const PAGE_SIZE = 20;
 
 export default function AccessCodesPage() {
   const [codes, setCodes] = useState<AccessCode[] | null>(null);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  async function load(statusFilter?: string) {
+  async function load(statusFilter: string, pageNum: number) {
     try {
-      const data = await apiFetch<{ accessCodes: AccessCode[] }>("/api/access-codes", {
-        params: { status: statusFilter },
+      const data = await apiFetch<{ accessCodes: AccessCode[]; pagination: Pagination }>("/api/access-codes", {
+        params: { status: statusFilter || undefined, page: String(pageNum), pageSize: String(PAGE_SIZE) },
       });
       setCodes(data.accessCodes);
+      setPagination(data.pagination);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Failed to load access codes");
     }
   }
 
   useEffect(() => {
-    load(status);
+    load(status, page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, page]);
+
+  useEffect(() => {
+    setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
@@ -33,7 +43,7 @@ export default function AccessCodesPage() {
     if (!confirm(`Revoke the access code for ${code.visitorName}?`)) return;
     try {
       await apiFetch(`/api/access-codes/${code.id}`, { method: "PATCH", body: { action: "revoke" } });
-      load(status);
+      load(status, page);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Failed to revoke code");
     }
@@ -111,6 +121,7 @@ export default function AccessCodesPage() {
             )}
           </tbody>
         </table>
+        {pagination ? <PaginationBar pagination={pagination} onPageChange={setPage} /> : null}
       </div>
     </>
   );

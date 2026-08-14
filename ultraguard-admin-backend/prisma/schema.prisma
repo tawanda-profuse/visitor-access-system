@@ -83,6 +83,8 @@ model Resident {
   city         String?
   country      String?
   address      String? // derived from houseNumber/streetName/city/country, kept in sync by the API layer
+  latitude     Float?
+  longitude    Float?
   otpCodeHash  String?
   otpExpiresAt DateTime?
   pushToken    String?

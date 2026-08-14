@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
 import { verifyOtp } from "@/lib/otp";
 import { signToken } from "@/lib/auth";
+import { normalizePhone } from "@/lib/phone";
 
 export const runtime = "nodejs";
 
@@ -17,8 +18,9 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body = schema.parse(await req.json());
+    const phone = normalizePhone(body.phone);
 
-    const resident = await prisma.resident.findUnique({ where: { phone: body.phone } });
+    const resident = await prisma.resident.findUnique({ where: { phone } });
     if (!resident || !resident.otpCodeHash || !resident.otpExpiresAt) {
       throw new ApiError("No OTP request found for this phone number", 400);
     }

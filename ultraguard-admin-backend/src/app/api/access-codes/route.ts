@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
 import { verifyToken, getBearerToken } from "@/lib/auth";
 import { generateUniqueAccessCredentials } from "@/lib/access-codes";
+import { parsePagination, buildPaginationMeta } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -25,13 +26,24 @@ export async function GET(req: NextRequest) {
             ...(status ? { status: status as never } : {}),
           };
 
-    const accessCodes = await prisma.accessCode.findMany({
-      where,
-      include: { resident: true },
-      orderBy: { createdAt: "desc" },
-    });
+    // Pagination only applies to the admin portal — the resident app has no pagination UI
+    // and expects its own (naturally small) invite list back in full.
+    const pagination = payload.subjectType !== "resident" ? parsePagination(req) : null;
 
-    return ok({ accessCodes });
+    const [accessCodes, total] = await Promise.all([
+      prisma.accessCode.findMany({
+        where,
+        include: { resident: true },
+        orderBy: { createdAt: "desc" },
+        ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}),
+      }),
+      prisma.accessCode.count({ where }),
+    ]);
+
+    return ok({
+      accessCodes,
+      ...(pagination ? { pagination: buildPaginationMeta(pagination.page, pagination.pageSize, total) } : {}),
+    });
   } catch (error) {
     return handleApiError(error);
   }

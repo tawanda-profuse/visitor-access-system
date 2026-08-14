@@ -4,40 +4,55 @@ import { useEffect, useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
+import { PaginationBar } from "@/components/PaginationBar";
+import { ResidentLocationModal } from "@/components/ResidentLocationModal";
 import { useAuth } from "@/lib/auth-context";
-import type { Resident, Property } from "@/lib/types";
+import type { Resident, Property, Pagination } from "@/lib/types";
 import { ResidentFormModal, flattenUnitOptions } from "./ResidentFormModal";
+
+const PAGE_SIZE = 20;
 
 export default function ResidentsPage() {
   const { admin } = useAuth();
   const [residents, setResidents] = useState<Resident[] | null>(null);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [page, setPage] = useState(1);
   const [properties, setProperties] = useState<Property[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [modalMode, setModalMode] = useState<"add" | "edit" | null>(null);
   const [editingResident, setEditingResident] = useState<Resident | null>(null);
+  const [locatingResident, setLocatingResident] = useState<Resident | null>(null);
 
-  async function loadResidents(searchTerm?: string) {
+  async function loadResidents(searchTerm: string, pageNum: number) {
     try {
-      const data = await apiFetch<{ residents: Resident[] }>("/api/residents", {
-        params: { search: searchTerm },
+      const data = await apiFetch<{ residents: Resident[]; pagination: Pagination }>("/api/residents", {
+        params: { search: searchTerm || undefined, page: String(pageNum), pageSize: String(PAGE_SIZE) },
       });
       setResidents(data.residents);
+      setPagination(data.pagination);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Failed to load residents");
     }
   }
 
   useEffect(() => {
-    loadResidents();
     apiFetch<{ properties: Property[] }>("/api/properties")
       .then((data) => setProperties(data.properties))
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    const timeout = setTimeout(() => loadResidents(search), 300);
+    const timeout = setTimeout(() => loadResidents(search, page), 300);
     return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, page]);
+
+  // Reset to page 1 whenever the search term changes so results aren't stranded on an
+  // out-of-range page from a previous, larger result set.
+  useEffect(() => {
+    setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
@@ -45,7 +60,7 @@ export default function ResidentsPage() {
     const nextStatus = resident.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED";
     try {
       await apiFetch(`/api/residents/${resident.id}`, { method: "PATCH", body: { status: nextStatus } });
-      loadResidents(search);
+      loadResidents(search, page);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Failed to update resident");
     }
@@ -55,7 +70,7 @@ export default function ResidentsPage() {
     if (!confirm(`Permanently remove ${resident.name}? This cannot be undone.`)) return;
     try {
       await apiFetch(`/api/residents/${resident.id}`, { method: "DELETE" });
-      loadResidents(search);
+      loadResidents(search, page);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Failed to remove resident");
     }
@@ -139,6 +154,9 @@ export default function ResidentsPage() {
                       >
                         Edit
                       </button>
+                      <button className="ug-btn ug-btn-secondary ug-btn-sm" onClick={() => setLocatingResident(resident)}>
+                        {resident.latitude != null ? "View Location" : "Set Location"}
+                      </button>
                       {resident.status !== "REMOVED" ? (
                         <button className="ug-btn ug-btn-secondary ug-btn-sm" onClick={() => toggleSuspend(resident)}>
                           {resident.status === "SUSPENDED" ? "Reactivate" : "Suspend"}
@@ -156,6 +174,7 @@ export default function ResidentsPage() {
             )}
           </tbody>
         </table>
+        {pagination ? <PaginationBar pagination={pagination} onPageChange={setPage} /> : null}
       </div>
 
       {modalMode ? (
@@ -169,7 +188,18 @@ export default function ResidentsPage() {
           onSaved={() => {
             setModalMode(null);
             setEditingResident(null);
-            loadResidents(search);
+            loadResidents(search, page);
+          }}
+        />
+      ) : null}
+
+      {locatingResident ? (
+        <ResidentLocationModal
+          resident={locatingResident}
+          onClose={() => setLocatingResident(null)}
+          onSaved={() => {
+            setLocatingResident(null);
+            loadResidents(search, page);
           }}
         />
       ) : null}

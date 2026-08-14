@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError } from "@/lib/api-response";
 import { requireAdmin } from "@/lib/auth";
 import { buildAddress } from "@/lib/address";
+import { normalizePhone } from "@/lib/phone";
+import { parsePagination, buildPaginationMeta } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -13,21 +15,31 @@ export async function GET(req: NextRequest) {
     requireAdmin(req);
     const search = req.nextUrl.searchParams.get("search") ?? undefined;
 
-    const residents = await prisma.resident.findMany({
-      where: search
-        ? {
-            OR: [
-              { name: { contains: search } },
-              { phone: { contains: search } },
-              { email: { contains: search } },
-            ],
-          }
-        : undefined,
-      include: { units: { include: { unit: { include: { property: true } } } } },
-      orderBy: { createdAt: "desc" },
-    });
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { phone: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : undefined;
 
-    return ok({ residents });
+    const pagination = parsePagination(req);
+    const [residents, total] = await Promise.all([
+      prisma.resident.findMany({
+        where,
+        include: { units: { include: { unit: { include: { property: true } } } } },
+        orderBy: { createdAt: "desc" },
+        ...(pagination ? { skip: pagination.skip, take: pagination.take } : {}),
+      }),
+      prisma.resident.count({ where }),
+    ]);
+
+    return ok({
+      residents,
+      ...(pagination ? { pagination: buildPaginationMeta(pagination.page, pagination.pageSize, total) } : {}),
+    });
   } catch (error) {
     return handleApiError(error);
   }
@@ -49,11 +61,12 @@ export async function POST(req: NextRequest) {
   try {
     requireAdmin(req, ["SUPER_ADMIN", "OPERATOR"]);
     const body = createSchema.parse(await req.json());
+    const phone = normalizePhone(body.phone);
 
     const resident = await prisma.resident.create({
       data: {
         name: body.name,
-        phone: body.phone,
+        phone,
         email: body.email,
         houseNumber: body.houseNumber,
         streetName: body.streetName,
