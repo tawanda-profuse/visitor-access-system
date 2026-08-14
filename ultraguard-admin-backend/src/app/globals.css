@@ -281,13 +281,58 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow-x: hidden;
+  transition: width 0.18s ease;
+}
+
+.ug-sidebar-collapsed {
+  width: 76px;
+}
+
+.ug-sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.ug-sidebar-collapsed .ug-sidebar-top {
+  flex-direction: column;
 }
 
 .ug-sidebar-logo {
   display: flex;
   align-items: center;
-  margin-bottom: 1.5rem;
   background: white;
+  border-radius: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ug-sidebar-collapsed .ug-sidebar-logo {
+  flex: none;
+  padding: 0.25rem;
+}
+
+.ug-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #9a9a9a;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ug-sidebar-toggle:hover {
+  background: #1c1c1c;
+  color: var(--ug-white);
 }
 
 .ug-sidebar-nav {
@@ -307,7 +352,17 @@ button {
   font-size: 0.9rem;
   font-weight: 500;
   text-decoration: none;
+  white-space: nowrap;
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ug-nav-icon {
+  flex-shrink: 0;
+}
+
+.ug-sidebar-collapsed .ug-nav-link {
+  justify-content: center;
+  padding: 0.6rem;
 }
 
 .ug-nav-link:hover {
@@ -324,6 +379,38 @@ button {
   border-top: 1px solid #262626;
   padding-top: 0.9rem;
   margin-top: 0.9rem;
+}
+
+.ug-live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+  color: #9a9a9a;
+}
+
+.ug-sidebar-collapsed .ug-live-indicator {
+  justify-content: center;
+}
+
+.ug-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5c5c5c;
+  flex-shrink: 0;
+}
+
+.ug-live-dot-on {
+  background: var(--ug-success, #1e9e52);
+  box-shadow: 0 0 0 2px rgba(30, 158, 82, 0.25);
+}
+
+.ug-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
 }
 
 .ug-main {
