@@ -1,11 +1,21 @@
-// This project is an API-only backend for the admin/security-company management portal.
-// A dedicated admin dashboard UI is out of scope for this MVP phase (see README);
-// this page exists only because the Next.js App Router requires a root route.
-export default function StatusPage() {
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+
+export default function RootPage() {
+  const { admin, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+    router.replace(admin ? "/dashboard" : "/login");
+  }, [loading, admin, router]);
+
   return (
-    <main style={{ background: "#0a0a0a", color: "#fff", minHeight: "100vh", padding: "3rem" }}>
-      <h1 style={{ color: "#e2151a" }}>Ultra-Guard Admin Backend</h1>
-      <p>API service is running. See /api/health and the project README for available endpoints.</p>
-    </main>
+    <div className="ug-center-screen">
+      <div className="ug-spinner" />
+    </div>
   );
 }
