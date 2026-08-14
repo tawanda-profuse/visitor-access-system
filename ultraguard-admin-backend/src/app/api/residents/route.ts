@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError } from "@/lib/api-response";
 import { requireAdmin } from "@/lib/auth";
+import { buildAddress } from "@/lib/address";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,10 @@ const createSchema = z.object({
   phone: z.string().min(7).max(20),
   email: z.string().email().optional(),
   unitId: z.string().optional(),
+  houseNumber: z.string().min(1).optional(),
+  streetName: z.string().min(1).optional(),
+  city: z.string().min(1).optional(),
+  country: z.string().min(1).optional(),
 });
 
 // POST /api/residents — Admin creates/onboards a resident and assigns them to a unit.
@@ -50,6 +55,11 @@ export async function POST(req: NextRequest) {
         name: body.name,
         phone: body.phone,
         email: body.email,
+        houseNumber: body.houseNumber,
+        streetName: body.streetName,
+        city: body.city,
+        country: body.country,
+        address: buildAddress(body),
         units: body.unitId
           ? { create: { unitId: body.unitId, isPrimary: true } }
           : undefined,

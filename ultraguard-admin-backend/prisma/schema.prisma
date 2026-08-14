@@ -78,6 +78,11 @@ model Resident {
   name         String
   phone        String    @unique
   email        String?   @unique
+  houseNumber  String?
+  streetName   String?
+  city         String?
+  country      String?
+  address      String? // derived from houseNumber/streetName/city/country, kept in sync by the API layer
   otpCodeHash  String?
   otpExpiresAt DateTime?
   pushToken    String?

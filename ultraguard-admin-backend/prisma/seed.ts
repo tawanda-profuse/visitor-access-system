@@ -38,7 +38,15 @@ async function main() {
   const resident = await prisma.resident.upsert({
     where: { phone: "+27820000000" },
     update: {},
-    create: { name: "Jane Resident", phone: "+27820000000" },
+    create: {
+      name: "Jane Resident",
+      phone: "+27820000000",
+      houseNumber: "12",
+      streetName: "Willow Creek Drive",
+      city: "Cape Town",
+      country: "South Africa",
+      address: "12 Willow Creek Drive, Cape Town, South Africa.",
+    },
   });
 
   await prisma.residentUnit.upsert({
