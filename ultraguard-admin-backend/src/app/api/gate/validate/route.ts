@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
 import { isAccessCodeCurrentlyValid } from "@/lib/access-codes";
 import { sendPushNotification } from "@/lib/push";
+import { publishEvent } from "@/lib/event-bus";
 
 export const runtime = "nodejs";
 
@@ -40,10 +41,11 @@ export async function POST(req: NextRequest) {
       if (!gate || !(await bcrypt.compare(apiKey, gate.apiKeyHash))) {
         throw new ApiError("Invalid gate credentials", 401);
       }
-      await prisma.gate.update({
+      const updatedGate = await prisma.gate.update({
         where: { id: gate.id },
         data: { status: "ONLINE", lastSeenAt: new Date() },
       });
+      publishEvent("gate", "updated", updatedGate);
     } else if (apiKey !== (process.env.GATE_API_KEY ?? "dev-gate-shared-secret")) {
       // Dev fallback path — no Gate provisioned yet, just the shared secret from .env.
       throw new ApiError("Invalid gate credentials", 401);
@@ -62,24 +64,29 @@ export async function POST(req: NextRequest) {
       residentId: accessCode?.residentId,
     };
 
-    if (!accessCode) {
-      await prisma.entryLog.create({
-        data: { ...logBase, result: "INVALID", reason: "Code not recognized" },
+    // Drives the admin portal's live Dashboard/Entry Logs feed (see src/lib/event-bus.ts) —
+    // every branch below logs through here rather than calling prisma.entryLog.create directly.
+    async function logEntry(data: { result: string; reason?: string }) {
+      const entryLog = await prisma.entryLog.create({
+        data: { ...logBase, ...data },
+        include: { gate: true, resident: true, accessCode: true },
       });
+      publishEvent("entry-log", "created", entryLog);
+      return entryLog;
+    }
+
+    if (!accessCode) {
+      await logEntry({ result: "INVALID", reason: "Code not recognized" });
       return ok({ result: "INVALID", gateAction: "DENY", message: "Code not recognized" }, 200);
     }
 
     if (accessCode.status === "REVOKED") {
-      await prisma.entryLog.create({
-        data: { ...logBase, result: "DENIED", reason: "Code was revoked" },
-      });
+      await logEntry({ result: "DENIED", reason: "Code was revoked" });
       return ok({ result: "DENIED", gateAction: "DENY", message: "Code was revoked" });
     }
 
     if (accessCode.status === "USED" && accessCode.type !== "RECURRING") {
-      await prisma.entryLog.create({
-        data: { ...logBase, result: "DENIED", reason: "Code already used" },
-      });
+      await logEntry({ result: "DENIED", reason: "Code already used" });
       return ok({ result: "DENIED", gateAction: "DENY", message: "Code already used" });
     }
 
@@ -89,9 +96,7 @@ export async function POST(req: NextRequest) {
       if (expired && accessCode.status === "ACTIVE") {
         await prisma.accessCode.update({ where: { id: accessCode.id }, data: { status: "EXPIRED" } });
       }
-      await prisma.entryLog.create({
-        data: { ...logBase, result: expired ? "EXPIRED" : "DENIED", reason: validity.reason },
-      });
+      await logEntry({ result: expired ? "EXPIRED" : "DENIED", reason: validity.reason });
       return ok({
         result: expired ? "EXPIRED" : "DENIED",
         gateAction: "DENY",
@@ -100,9 +105,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (accessCode.useCount >= accessCode.maxUses) {
-      await prisma.entryLog.create({
-        data: { ...logBase, result: "DENIED", reason: "Maximum uses reached" },
-      });
+      await logEntry({ result: "DENIED", reason: "Maximum uses reached" });
       return ok({ result: "DENIED", gateAction: "DENY", message: "Maximum uses reached" });
     }
 
@@ -115,7 +118,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await prisma.entryLog.create({ data: { ...logBase, result: "SUCCESS" } });
+    await logEntry({ result: "SUCCESS" });
 
     await sendPushNotification({
       pushToken: accessCode.resident.pushToken,

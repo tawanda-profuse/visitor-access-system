@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
 import { requireResident, verifyToken, getBearerToken } from "@/lib/auth";
 import { parsePagination, buildPaginationMeta } from "@/lib/pagination";
+import { publishEvent } from "@/lib/event-bus";
 
 export const runtime = "nodejs";
 
@@ -52,7 +53,9 @@ export async function POST(req: NextRequest) {
 
     const panicAlert = await prisma.panicAlert.create({
       data: { residentId, propertyId: body.propertyId, message: body.message },
+      include: { resident: true, property: true },
     });
+    publishEvent("panic-alert", "created", panicAlert);
 
     // TODO: fan this out to guard-desk push tokens / SMS once the monitoring centre
     // notification channel is decided (see docs/HARDWARE_INTEGRATION_PROTOCOL.md).

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
 import { requireAdmin } from "@/lib/auth";
+import { publishEvent } from "@/lib/event-bus";
 
 export const runtime = "nodejs";
 
@@ -25,7 +26,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         status: body.status,
         ...(body.status === "RESOLVED" ? { resolvedAt: new Date(), resolvedById: adminId } : {}),
       },
+      include: { resident: true, property: true, resolvedBy: true },
     });
+    publishEvent("panic-alert", "updated", panicAlert);
 
     return ok({ panicAlert });
   } catch (error) {

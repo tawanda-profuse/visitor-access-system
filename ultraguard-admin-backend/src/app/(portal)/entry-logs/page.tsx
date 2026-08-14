@@ -5,6 +5,7 @@ import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PaginationBar } from "@/components/PaginationBar";
+import { useLiveEvents } from "@/lib/live-events-context";
 import type { EntryLog, Gate, Resident, Pagination } from "@/lib/types";
 
 const RESULT_OPTIONS = ["SUCCESS", "EXPIRED", "DENIED", "INVALID"];
@@ -55,6 +56,9 @@ export default function EntryLogsPage() {
     setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [residentId, gateId, result]);
+
+  // New gate activity refreshes the current page/filters as it happens.
+  useLiveEvents(["entry-log"], () => load(page));
 
   async function exportCsv() {
     if (!pagination || pagination.total === 0) return;

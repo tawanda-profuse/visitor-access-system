@@ -5,6 +5,7 @@ import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PaginationBar } from "@/components/PaginationBar";
+import { useLiveEvents } from "@/lib/live-events-context";
 import type { PanicAlert, Pagination } from "@/lib/types";
 
 const PAGE_SIZE = 20;
@@ -14,6 +15,7 @@ export default function PanicAlertsPage() {
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [newAlertBanner, setNewAlertBanner] = useState<string | null>(null);
 
   async function load(pageNum: number) {
     try {
@@ -32,6 +34,17 @@ export default function PanicAlertsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
+  // Emergency alerts need to surface the instant they're raised, not on the next manual
+  // refresh — refresh the list live and flash a banner for brand-new ones.
+  useLiveEvents(["panic-alert"], (event) => {
+    load(page);
+    if (event.action === "created") {
+      const alert = event.data as PanicAlert;
+      setNewAlertBanner(`New panic alert from ${alert.resident?.name ?? "a resident"}${alert.message ? `: "${alert.message}"` : ""}`);
+      setTimeout(() => setNewAlertBanner(null), 8000);
+    }
+  });
+
   async function updateStatus(alert: PanicAlert, status: "ACKNOWLEDGED" | "RESOLVED") {
     try {
       await apiFetch(`/api/panic/${alert.id}`, { method: "PATCH", body: { status } });
@@ -46,6 +59,7 @@ export default function PanicAlertsPage() {
       <PageHeader title="Panic Alerts" subtitle="Emergency alerts raised by residents, open alerts first." />
 
       {error ? <div className="ug-banner ug-banner-danger">{error}</div> : null}
+      {newAlertBanner ? <div className="ug-banner ug-banner-danger">{newAlertBanner}</div> : null}
 
       <div className="ug-card">
         <div className="ug-table-scroll">

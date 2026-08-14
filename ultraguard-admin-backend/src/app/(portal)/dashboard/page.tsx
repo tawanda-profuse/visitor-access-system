@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useLiveEvents } from "@/lib/live-events-context";
 
 type EntryLog = {
   id: string;
@@ -31,11 +32,19 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadSummary() {
     apiFetch<Summary>("/api/admin/dashboard/summary")
       .then(setSummary)
       .catch((err) => setError(err instanceof ApiClientError ? err.message : "Failed to load dashboard"));
+  }
+
+  useEffect(() => {
+    loadSummary();
   }, []);
+
+  // Live gate/panic/access activity refreshes the summary cards and recent activity table
+  // as it happens, instead of the admin having to reload the page.
+  useLiveEvents(["entry-log", "panic-alert", "gate", "access-code"], () => loadSummary());
 
   return (
     <>

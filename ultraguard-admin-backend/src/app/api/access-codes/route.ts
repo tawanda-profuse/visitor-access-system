@@ -5,6 +5,7 @@ import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
 import { verifyToken, getBearerToken } from "@/lib/auth";
 import { generateUniqueAccessCredentials } from "@/lib/access-codes";
 import { parsePagination, buildPaginationMeta } from "@/lib/pagination";
+import { publishEvent } from "@/lib/event-bus";
 
 export const runtime = "nodejs";
 
@@ -101,7 +102,9 @@ export async function POST(req: NextRequest) {
         maxUses: body.type === "ONE_TIME" ? 1 : body.maxUses ?? (body.type === "RECURRING" ? 1000 : 1),
         recurrenceRule: body.recurrenceRule ? JSON.stringify(body.recurrenceRule) : null,
       },
+      include: { resident: true },
     });
+    publishEvent("access-code", "created", accessCode);
 
     return ok({ accessCode }, 201);
   } catch (error) {

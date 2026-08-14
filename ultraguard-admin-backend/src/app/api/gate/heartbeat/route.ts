@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
+import { publishEvent } from "@/lib/event-bus";
 
 export const runtime = "nodejs";
 
@@ -30,10 +31,11 @@ export async function POST(req: NextRequest) {
       throw new ApiError("Invalid gate credentials", 401);
     }
 
-    await prisma.gate.update({
+    const updatedGate = await prisma.gate.update({
       where: { id: gate.id },
       data: { status: "ONLINE", lastSeenAt: new Date() },
     });
+    publishEvent("gate", "updated", updatedGate);
 
     return ok({ message: "Heartbeat received", bufferedCodesCount: body.bufferedCodesCount ?? null });
   } catch (error) {

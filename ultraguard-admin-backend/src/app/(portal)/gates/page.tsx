@@ -5,6 +5,7 @@ import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Modal } from "@/components/Modal";
+import { useLiveEvents } from "@/lib/live-events-context";
 import type { Gate, Property } from "@/lib/types";
 
 export default function GatesPage() {
@@ -29,6 +30,9 @@ export default function GatesPage() {
       .then((data) => setProperties(data.properties))
       .catch(() => {});
   }, []);
+
+  // Gate status/last-seen updates (heartbeats, validations) refresh the connectivity table live.
+  useLiveEvents(["gate"], () => load());
 
   return (
     <>

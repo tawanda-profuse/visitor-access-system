@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, handleApiError, ApiError } from "@/lib/api-response";
 import { verifyToken, getBearerToken } from "@/lib/auth";
+import { publishEvent } from "@/lib/event-bus";
 
 export const runtime = "nodejs";
 
@@ -39,7 +40,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const accessCode = await prisma.accessCode.update({
       where: { id: params.id },
       data: { status: "REVOKED" },
+      include: { resident: true },
     });
+    publishEvent("access-code", "updated", accessCode);
 
     return ok({ accessCode });
   } catch (error) {

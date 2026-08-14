@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { LiveEventsProvider } from "@/lib/live-events-context";
 import { Sidebar } from "@/components/Sidebar";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -24,11 +25,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className="ug-app-shell">
-      <Sidebar />
-      <main className="ug-main">
-        <div className="ug-content">{children}</div>
-      </main>
-    </div>
+    <LiveEventsProvider>
+      <div className="ug-app-shell">
+        <Sidebar />
+        <main className="ug-main">
+          <div className="ug-content">{children}</div>
+        </main>
+      </div>
+    </LiveEventsProvider>
   );
 }
