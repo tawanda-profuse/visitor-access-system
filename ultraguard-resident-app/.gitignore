@@ -42,3 +42,5 @@ yarn-error.*
 
 # local APK build output
 /builds
+
+.env
