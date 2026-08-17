@@ -92,6 +92,9 @@ export default function AccessCodeDetailScreen() {
 
       <Card>
         <Row label="Visitor" value={accessCode.visitorName} colors={colors} />
+        {accessCode.visitorIdNumber && (
+          <Row label="Visitor ID" value={accessCode.visitorIdNumber} colors={colors} />
+        )}
         <Row label="Type" value={accessCode.type.replace("_", " ")} colors={colors} />
         <Row label="Valid From" value={new Date(accessCode.validFrom).toLocaleString()} colors={colors} />
         <Row label="Valid Until" value={new Date(accessCode.validUntil).toLocaleString()} colors={colors} />

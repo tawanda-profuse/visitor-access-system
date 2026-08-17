@@ -35,12 +35,16 @@ async function main() {
     create: { id: "seed-unit-1", label: "House 12", propertyId: property.id },
   });
 
+  const residentPassword = process.env.SEED_RESIDENT_PASSWORD ?? "ChangeMe123!";
+
   const resident = await prisma.resident.upsert({
     where: { phone: "+27820000000" },
     update: {},
     create: {
       name: "Jane Resident",
       phone: "+27820000000",
+      passwordHash: await bcrypt.hash(residentPassword, 10),
+      passwordSetAt: new Date(),
       houseNumber: "12",
       streetName: "Willow Creek Drive",
       city: "Cape Town",
@@ -55,7 +59,7 @@ async function main() {
     create: { residentId: resident.id, unitId: unit.id, isPrimary: true },
   });
 
-  console.log(`Seeded property "${property.name}" with resident ${resident.phone}`);
+  console.log(`Seeded property "${property.name}" with resident ${resident.phone} / ${residentPassword}`);
 }
 
 main()

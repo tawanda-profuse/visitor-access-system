@@ -17,15 +17,34 @@ export async function POST(req: NextRequest) {
     const body = schema.parse(await req.json());
 
     const admin = await prisma.admin.findUnique({ where: { email: body.email } });
-    if (!admin || !(await verifyPassword(body.password, admin.passwordHash))) {
+    if (!admin) {
+      throw new ApiError("Invalid email or password", 401);
+    }
+    if (!admin.passwordHash) {
+      throw new ApiError("Please check your email to set your password before signing in", 403);
+    }
+    if (!(await verifyPassword(body.password, admin.passwordHash))) {
       throw new ApiError("Invalid email or password", 401);
     }
 
-    const token = signToken({ subjectType: "admin", adminId: admin.id, role: admin.role });
+    const token = signToken({
+      subjectType: "admin",
+      adminId: admin.id,
+      role: admin.role,
+      propertyId: admin.propertyId,
+      onboarded: !!admin.onboardingCompletedAt,
+    });
 
     return ok({
       token,
-      admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role },
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        propertyId: admin.propertyId,
+        onboardingCompletedAt: admin.onboardingCompletedAt,
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) return fail("Invalid request", 422, error.flatten());

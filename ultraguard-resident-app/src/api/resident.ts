@@ -1,17 +1,17 @@
 import { apiRequest } from "./client";
 import type { AccessCode, AccessCodeType, EntryLog, PanicAlert, Resident } from "./types";
 
-export function requestOtp(phone: string) {
-  return apiRequest<{ message: string; devOtp?: string }>("/api/auth/resident/request-otp", {
+export function loginResident(identifier: string, password: string) {
+  return apiRequest<{ token: string; resident: Resident }>("/api/auth/resident/login", {
     method: "POST",
-    body: { phone },
+    body: { identifier, password },
   });
 }
 
-export function verifyOtp(phone: string, otp: string) {
-  return apiRequest<{ token: string; resident: Resident }>("/api/auth/resident/verify-otp", {
+export function forgotPassword(identifier: string) {
+  return apiRequest<{ message: string }>("/api/auth/resident/forgot-password", {
     method: "POST",
-    body: { phone, otp },
+    body: { identifier },
   });
 }
 
@@ -27,6 +27,7 @@ export type CreateAccessCodeInput = {
   type: AccessCodeType;
   visitorName: string;
   visitorPhone?: string;
+  visitorIdNumber?: string;
   validFrom?: string;
   validUntil: string;
   maxUses?: number;

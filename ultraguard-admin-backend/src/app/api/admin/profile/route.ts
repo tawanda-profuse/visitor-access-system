@@ -31,6 +31,9 @@ export async function PATCH(req: NextRequest) {
 
     let passwordHash: string | undefined;
     if (body.newPassword) {
+      if (!admin.passwordHash) {
+        throw new ApiError("Please set your password via the link in your invite email first", 400);
+      }
       const currentMatches = await verifyPassword(body.currentPassword!, admin.passwordHash);
       if (!currentMatches) throw new ApiError("Current password is incorrect", 401);
       passwordHash = await hashPassword(body.newPassword);
@@ -45,7 +48,16 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
-    return ok({ admin: { id: updated.id, name: updated.name, email: updated.email, role: updated.role } });
+    return ok({
+      admin: {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+        propertyId: updated.propertyId,
+        onboardingCompletedAt: updated.onboardingCompletedAt,
+      },
+    });
   } catch (error) {
     if (error instanceof z.ZodError) return fail("Invalid request", 422, error.flatten());
     return handleApiError(error);

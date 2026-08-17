@@ -1,40 +1,52 @@
 import React, { useState } from "react";
-import { Image, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { ActivityIndicator, Image, Text, View } from "react-native";
+import { Redirect, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
-import { Card } from "@/components/Card";
 import { useAppTheme } from "@/theme/ThemeContext";
-import { requestOtp } from "@/api/resident";
+import { useAuth } from "@/auth/AuthContext";
+import { loginResident } from "@/api/resident";
 import { describeError } from "@/api/client";
 
 export default function LoginScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
-  const [phone, setPhone] = useState("");
+  const { token, isLoading, login } = useAuth();
+
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  // No SMS gateway is wired up yet (see ultraguard-admin-backend/src/lib/otp.ts) — the
-  // API echoes the OTP back in dev mode so we can surface it here instead of a text
-  // message. Once a real provider is connected, OTP_DEV_MODE=false makes devOtp
-  // undefined and this whole branch is skipped automatically.
-  const [devOtp, setDevOtp] = useState<string | null>(null);
+
+  // An already-signed-in resident should never land back on the login form (e.g. via
+  // deep link, back navigation, or a stale bookmark) — send them straight to the app.
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+  if (token) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const onSubmit = async () => {
     setError(null);
-    if (phone.trim().length < 7) {
-      setError("Enter a valid phone number, including country code.");
+    if (!identifier.trim()) {
+      setError("Enter your phone number or email.");
+      return;
+    }
+    if (!password) {
+      setError("Enter your password.");
       return;
     }
     setLoading(true);
     try {
-      const result = await requestOtp(phone.trim());
-      if (result.devOtp) {
-        setDevOtp(result.devOtp);
-      } else {
-        router.push({ pathname: "/verify", params: { phone: phone.trim() } });
-      }
+      const result = await loginResident(identifier.trim(), password);
+      await login(result.token, result.resident);
+      router.replace("/(tabs)");
     } catch (e) {
       setError(describeError(e, "Something went wrong. Try again."));
     } finally {
@@ -42,17 +54,8 @@ export default function LoginScreen() {
     }
   };
 
-  const onContinue = () => {
-    router.push({ pathname: "/verify", params: { phone: phone.trim(), devOtp: devOtp ?? "" } });
-  };
-
-  const onUseDifferentNumber = () => {
-    setDevOtp(null);
-    setError(null);
-  };
-
   return (
-    <ScreenContainer scroll={false} style={{ justifyContent: "center", gap: 24 }}>
+    <ScreenContainer scroll style={{ justifyContent: "center", gap: 24 }}>
       <View style={{ alignItems: "center", gap: 12 }}>
         <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 12 }}>
           <Image
@@ -68,52 +71,40 @@ export default function LoginScreen() {
 
       <View style={{ gap: 12 }}>
         <TextField
-          label="Mobile Number"
-          placeholder="+27 82 000 0000"
-          keyboardType="phone-pad"
-          autoComplete="tel"
-          value={phone}
-          onChangeText={setPhone}
-          editable={!devOtp}
+          label="Phone or Email"
+          placeholder="+263 772 000 000 or you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="username"
+          value={identifier}
+          onChangeText={setIdentifier}
+        />
+        <TextField
+          label="Password"
+          placeholder="Your password"
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete="password"
+          value={password}
+          onChangeText={setPassword}
         />
         {error && <Text style={{ color: colors.danger, fontSize: 13 }}>{error}</Text>}
 
-        {devOtp ? (
-          <>
-            <Card style={{ borderColor: colors.warning, gap: 6 }}>
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>
-                No SMS Gateway Connected Yet
-              </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                This code would normally be texted to {phone}. Shown here for testing until a
-                real SMS provider is integrated.
-              </Text>
-              <Text
-                style={{
-                  color: colors.primary,
-                  fontSize: 34,
-                  fontWeight: "800",
-                  letterSpacing: 6,
-                  textAlign: "center",
-                  marginTop: 4,
-                }}
-              >
-                {devOtp}
-              </Text>
-            </Card>
-            <Button label="Continue" onPress={onContinue} />
-            <Button label="Use a Different Number" variant="ghost" onPress={onUseDifferentNumber} />
-          </>
-        ) : (
-          <Button label="Send Login Code" onPress={onSubmit} loading={loading} />
-        )}
+        <Button label="Sign In" onPress={onSubmit} loading={loading} />
+        <Button label="Forgot Password?" variant="ghost" onPress={() => router.push("/forgot-password")} />
       </View>
 
-      {!devOtp && (
+      <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: "center" }}>
+        New resident? Check your email for a link to set your password.
+      </Text>
+
+      <View style={{ gap: 10 }}>
+        <View style={{ height: 1, backgroundColor: colors.border }} />
         <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: "center" }}>
-          We'll text a one-time code to verify it's you.
+          Working the gate tonight?
         </Text>
-      )}
+        <Button label="Security Guard Mode" variant="secondary" onPress={() => router.push("/guard")} />
+      </View>
     </ScreenContainer>
   );
 }

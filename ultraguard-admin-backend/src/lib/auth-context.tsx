@@ -9,6 +9,8 @@ export type AdminUser = {
   name: string;
   email: string;
   role: string;
+  propertyId: string | null;
+  onboardingCompletedAt: string | null;
 };
 
 type AuthContextValue = {
@@ -17,6 +19,11 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   updateAdmin: (admin: AdminUser) => void;
+  // Swaps both the stored JWT and the admin object in one go — needed after
+  // POST /api/admin/onboarding/complete, which issues a fresh token carrying the
+  // now-set propertyId/onboarded claims (the old token still says onboarded: false
+  // for server-side property-scoped checks).
+  setSession: (token: string, admin: AdminUser) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -69,7 +76,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAdmin(next);
   }, []);
 
-  return <AuthContext.Provider value={{ admin, loading, login, logout, updateAdmin }}>{children}</AuthContext.Provider>;
+  const setSession = useCallback((token: string, next: AdminUser) => {
+    window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    setAdmin(next);
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ admin, loading, login, logout, updateAdmin, setSession }}>{children}</AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

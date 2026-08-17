@@ -17,14 +17,22 @@ export async function GET(req: NextRequest) {
         include: { units: { include: { unit: { include: { property: true } } } } },
       });
       if (!resident) throw new ApiError("Resident not found", 404);
-      return ok({ subjectType: "resident", resident });
+      const { passwordHash: _passwordHash, ...residentSafe } = resident;
+      return ok({ subjectType: "resident", resident: residentSafe });
     }
 
     const admin = await prisma.admin.findUnique({ where: { id: payload.adminId } });
     if (!admin) throw new ApiError("Admin not found", 404);
     return ok({
       subjectType: "admin",
-      admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role },
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        propertyId: admin.propertyId,
+        onboardingCompletedAt: admin.onboardingCompletedAt,
+      },
     });
   } catch (error) {
     return handleApiError(error);

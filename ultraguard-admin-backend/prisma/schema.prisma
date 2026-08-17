@@ -29,6 +29,8 @@ model Property {
   units       Unit[]
   gates       Gate[]
   panicAlerts PanicAlert[]
+  admins      Admin[]
+  residentsLastHere Resident[]
 }
 
 model Unit {
@@ -62,15 +64,37 @@ model ResidentUnit {
 // ---------------------------------------------------------------------------
 
 model Admin {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         String   @default("OPERATOR") // SUPER_ADMIN | OPERATOR | GUARD
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                    String    @id @default(cuid())
+  name                  String
+  email                 String    @unique
+  passwordHash          String? // null until the admin sets their password via an invite/reset link
+  role                  String    @default("OPERATOR") // SUPER_ADMIN | OPERATOR | PROPERTY_ADMIN
+  propertyId            String? // set for PROPERTY_ADMIN once onboarding completes; null for SUPER_ADMIN/OPERATOR
+  property              Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  onboardingCompletedAt DateTime? // drives whether a PROPERTY_ADMIN must complete the onboarding wizard
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   resolvedPanicAlerts PanicAlert[] @relation("ResolvedBy")
+
+  @@index([propertyId])
+}
+
+// Shared one-time-use token backing all invite/password-reset flows for both
+// Admins and Residents. tokenHash is sha256 of the raw token (not bcrypt) —
+// the raw token itself is the lookup key here (no other way to find the row),
+// so we need a fast indexed exact-match rather than a slow salted compare.
+model PasswordSetupToken {
+  id          String    @id @default(cuid())
+  subjectType String // ADMIN | RESIDENT
+  subjectId   String
+  tokenHash   String    @unique
+  purpose     String // INVITE | RESET
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([subjectType, subjectId, purpose])
 }
 
 // Single shared row of admin-configurable, system-wide settings (see src/lib/settings.ts).
@@ -81,23 +105,31 @@ model SystemSetting {
 }
 
 model Resident {
-  id           String    @id @default(cuid())
-  name         String
-  phone        String    @unique
-  email        String?   @unique
-  houseNumber  String?
-  streetName   String?
-  city         String?
-  country      String?
-  address      String? // derived from houseNumber/streetName/city/country, kept in sync by the API layer
-  latitude     Float?
-  longitude    Float?
-  otpCodeHash  String?
-  otpExpiresAt DateTime?
-  pushToken    String?
-  status       String    @default("ACTIVE") // ACTIVE | SUSPENDED | REMOVED
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  name          String
+  phone         String?   @unique // optional — at least one of phone/email is required (enforced via zod + a DB CHECK constraint)
+  email         String?   @unique
+  houseNumber   String?
+  streetName    String?
+  city          String?
+  country       String?
+  address       String? // derived from houseNumber/streetName/city/country, kept in sync by the API layer
+  latitude      Float?
+  longitude     Float?
+  passwordHash  String? // null until the resident sets their password via an invite/reset link
+  passwordSetAt DateTime?
+  pushToken     String?
+  status        String    @default("ACTIVE") // ACTIVE | SUSPENDED | REMOVED
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // The most recent property this resident was assigned a unit in, kept even after
+  // they're unassigned (units: none). Lets the property admin who removed them (or who
+  // originally created them) find and re-add them via the "unassigned residents" picker,
+  // without exposing residents that were never associated with that property. Null for
+  // residents that have never had a unit (e.g. standalone/private, Super-Admin-created).
+  lastPropertyId String?
+  lastProperty   Property? @relation(fields: [lastPropertyId], references: [id], onDelete: SetNull)
 
   units       ResidentUnit[]
   accessCodes AccessCode[]
@@ -105,6 +137,7 @@ model Resident {
   panicAlerts PanicAlert[]
 
   @@index([phone])
+  @@index([lastPropertyId])
 }
 
 // ---------------------------------------------------------------------------
@@ -121,8 +154,9 @@ model AccessCode {
   residentId String
   resident   Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
 
-  visitorName  String
-  visitorPhone String?
+  visitorName     String
+  visitorPhone    String?
+  visitorIdNumber String? // optional alphanumeric ID/passport number for the visitor
 
   validFrom DateTime
   validUntil DateTime
@@ -180,8 +214,9 @@ model EntryLog {
 
   visitorName String?
   method      String // PIN | QR
-  result      String // SUCCESS | EXPIRED | DENIED | INVALID
+  result      String // SUCCESS | EXPIRED | DENIED | INVALID | WRONG_LOCATION
   reason      String? // human-readable denial/expiry reason
+  verifiedVia String   @default("HARDWARE") // HARDWARE | SECURITY_GUARD
   occurredAt  DateTime @default(now())
 
   @@index([residentId])

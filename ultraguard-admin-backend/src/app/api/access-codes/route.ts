@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
-import { verifyToken, getBearerToken } from "@/lib/auth";
+import { verifyToken, getBearerToken, requirePropertyScopedAdmin } from "@/lib/auth";
 import { generateUniqueAccessCredentials } from "@/lib/access-codes";
 import { parsePagination, buildPaginationMeta } from "@/lib/pagination";
 import { publishEvent } from "@/lib/event-bus";
@@ -11,21 +11,26 @@ export const runtime = "nodejs";
 
 // GET /api/access-codes
 // Resident app: "Visitor History & Logs" / active invite list (own codes only).
-// Admin portal: all codes, optionally filtered by ?residentId=.
+// Admin portal: all codes, optionally filtered by ?residentId= — Property Admins only
+// ever see codes belonging to residents linked to a unit in their own property.
 export async function GET(req: NextRequest) {
   try {
     const payload = verifyToken(getBearerToken(req));
     const status = req.nextUrl.searchParams.get("status") ?? undefined;
 
-    const where =
-      payload.subjectType === "resident"
-        ? { residentId: payload.residentId, ...(status ? { status: status as never } : {}) }
-        : {
-            ...(req.nextUrl.searchParams.get("residentId")
-              ? { residentId: req.nextUrl.searchParams.get("residentId")! }
-              : {}),
-            ...(status ? { status: status as never } : {}),
-          };
+    let where: Record<string, unknown>;
+    if (payload.subjectType === "resident") {
+      where = { residentId: payload.residentId, ...(status ? { status: status as never } : {}) };
+    } else {
+      const { propertyId } = requirePropertyScopedAdmin(req);
+      where = {
+        ...(req.nextUrl.searchParams.get("residentId")
+          ? { residentId: req.nextUrl.searchParams.get("residentId")! }
+          : {}),
+        ...(status ? { status: status as never } : {}),
+        ...(propertyId ? { resident: { units: { some: { unit: { propertyId } } } } } : {}),
+      };
+    }
 
     // Pagination only applies to the admin portal — the resident app has no pagination UI
     // and expects its own (naturally small) invite list back in full.
@@ -55,6 +60,10 @@ const createSchema = z
     type: z.enum(["ONE_TIME", "TIME_BOUND", "RECURRING"]),
     visitorName: z.string().min(1),
     visitorPhone: z.string().optional(),
+    visitorIdNumber: z
+      .string()
+      .regex(/^[a-zA-Z0-9]+$/, "ID must be alphanumeric")
+      .optional(),
     validFrom: z.coerce.date().optional(),
     validUntil: z.coerce.date(),
     maxUses: z.number().int().positive().optional(),
@@ -97,6 +106,7 @@ export async function POST(req: NextRequest) {
         residentId: payload.residentId,
         visitorName: body.visitorName,
         visitorPhone: body.visitorPhone,
+        visitorIdNumber: body.visitorIdNumber,
         validFrom,
         validUntil: body.validUntil,
         maxUses: body.type === "ONE_TIME" ? 1 : body.maxUses ?? (body.type === "RECURRING" ? 1000 : 1),

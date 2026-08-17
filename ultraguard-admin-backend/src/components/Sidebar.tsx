@@ -13,6 +13,7 @@ import {
   ScrollText,
   AlertTriangle,
   Settings,
+  ShieldCheck,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useLiveConnectionStatus } from "@/lib/live-events-context";
+import { isSuperAdmin } from "@/lib/roles";
 
 const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -29,6 +31,10 @@ const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/access-codes", label: "Access Codes", icon: KeyRound },
   { href: "/entry-logs", label: "Entry Logs", icon: ScrollText },
   { href: "/panic-alerts", label: "Panic Alerts", icon: AlertTriangle },
+];
+
+const SUPER_ADMIN_NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/admins", label: "Admins", icon: ShieldCheck },
 ];
 
 const COLLAPSE_STORAGE_KEY = "ug_sidebar_collapsed";
@@ -80,7 +86,7 @@ export function Sidebar() {
       </div>
 
       <nav className="ug-sidebar-nav">
-        {NAV_ITEMS.map((item) => {
+        {[...NAV_ITEMS, ...(isSuperAdmin(admin) ? SUPER_ADMIN_NAV_ITEMS : [])].map((item) => {
           const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
           const Icon = item.icon;
           return (

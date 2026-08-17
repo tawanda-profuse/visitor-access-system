@@ -12,6 +12,7 @@ async function main() {
   let failed = 0;
 
   for (const resident of residents) {
+    if (!resident.phone) continue;
     try {
       const normalized = normalizePhone(resident.phone);
       if (normalized !== resident.phone) {

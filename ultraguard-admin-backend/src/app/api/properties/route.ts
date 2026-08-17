@@ -2,16 +2,21 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError } from "@/lib/api-response";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requirePropertyScopedAdmin } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-// GET /api/properties — Admin Portal: list managed properties.
+// GET /api/properties — Admin Portal: list managed properties. Property Admins only
+// ever see their own property (scoped by the API, not just hidden client-side).
 export async function GET(req: NextRequest) {
   try {
-    requireAdmin(req);
+    const { propertyId } = requirePropertyScopedAdmin(req);
     const properties = await prisma.property.findMany({
-      include: { units: true, gates: true },
+      where: propertyId ? { id: propertyId } : undefined,
+      include: {
+        units: { include: { residents: { include: { resident: true } } } },
+        gates: true,
+      },
       orderBy: { createdAt: "desc" },
     });
     return ok({ properties });

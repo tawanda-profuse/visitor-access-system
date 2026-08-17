@@ -1,10 +1,12 @@
 import React, { useCallback, useState } from "react";
 import { Alert, RefreshControl, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
+import { MessageModal } from "@/components/MessageModal";
 import { useAppTheme } from "@/theme/ThemeContext";
 import { useAuth } from "@/auth/AuthContext";
 import { fetchAccessCodes, fetchEntryLogs, triggerPanicAlert } from "@/api/resident";
@@ -19,6 +21,7 @@ export default function HomeScreen() {
   const [recentEntries, setRecentEntries] = useState<EntryLog[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [panicSending, setPanicSending] = useState(false);
+  const [panicModalVisible, setPanicModalVisible] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -44,29 +47,22 @@ export default function HomeScreen() {
   };
 
   const onPanic = () => {
-    Alert.alert(
-      "Trigger Emergency Alert?",
-      "This will immediately notify the security guard desk / monitoring centre.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Send Alert",
-          style: "destructive",
-          onPress: async () => {
-            if (!token) return;
-            setPanicSending(true);
-            try {
-              await triggerPanicAlert(token);
-              Alert.alert("Alert Sent", "Security has been notified.");
-            } catch {
-              Alert.alert("Failed to Send", "Please call the guard house directly.");
-            } finally {
-              setPanicSending(false);
-            }
-          },
-        },
-      ],
-    );
+    setPanicModalVisible(true);
+  };
+
+  const onConfirmPanic = async (message: string) => {
+    if (!token) return;
+    setPanicSending(true);
+    try {
+      await triggerPanicAlert(token, message.trim() || undefined);
+      setPanicModalVisible(false);
+      Alert.alert("Alert Sent", "Security has been notified.");
+    } catch {
+      setPanicModalVisible(false);
+      Alert.alert("Failed to Send", "Please call the guard house directly.");
+    } finally {
+      setPanicSending(false);
+    }
   };
 
   return (
@@ -85,6 +81,17 @@ export default function HomeScreen() {
       </View>
 
       <Button label="Invite a Visitor" onPress={() => router.push("/(tabs)/invite")} />
+
+      <Card style={{ borderColor: colors.warning }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Ionicons name="shield-checkmark" size={18} color={colors.warning} />
+          <Text style={{ color: colors.text, fontWeight: "700", fontSize: 15 }}>Covering the Gate?</Text>
+        </View>
+        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+          Verify a visitor's pass yourself — scan their QR or check their PIN in seconds.
+        </Text>
+        <Button label="🛡️ Guard the Gate" variant="secondary" onPress={() => router.push("/guard")} />
+      </Card>
 
       <Card style={{ borderColor: colors.danger }}>
         <Text style={{ color: colors.text, fontWeight: "700", fontSize: 15 }}>
@@ -155,6 +162,17 @@ export default function HomeScreen() {
           ))
         )}
       </View>
+
+      <MessageModal
+        visible={panicModalVisible}
+        title="Trigger Emergency Alert?"
+        description="This will immediately notify the security guard desk / monitoring centre."
+        confirmLabel="Send Alert"
+        confirmVariant="danger"
+        loading={panicSending}
+        onCancel={() => setPanicModalVisible(false)}
+        onConfirm={onConfirmPanic}
+      />
     </ScreenContainer>
   );
 }

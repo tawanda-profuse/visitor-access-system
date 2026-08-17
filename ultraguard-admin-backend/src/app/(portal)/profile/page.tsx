@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { PasswordInput } from "@/components/PasswordInput";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { useAuth, type AdminUser } from "@/lib/auth-context";
+import { canManageSettings } from "@/lib/roles";
 
 export default function ProfilePage() {
   const { admin, updateAdmin } = useAuth();
@@ -14,7 +16,7 @@ export default function ProfilePage() {
       <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: 480 }}>
         <ProfileDetailsForm admin={admin} onSaved={updateAdmin} />
         <PasswordForm />
-        <SupportEmailForm />
+        {canManageSettings(admin) ? <SupportEmailForm /> : null}
       </div>
     </>
   );
@@ -111,9 +113,7 @@ function PasswordForm() {
       <form onSubmit={handleSubmit}>
         <div className="ug-field">
           <label className="ug-label">Current Password</label>
-          <input
-            className="ug-input"
-            type="password"
+          <PasswordInput
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             required
@@ -121,9 +121,7 @@ function PasswordForm() {
         </div>
         <div className="ug-field">
           <label className="ug-label">New Password</label>
-          <input
-            className="ug-input"
-            type="password"
+          <PasswordInput
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             minLength={8}
@@ -132,9 +130,7 @@ function PasswordForm() {
         </div>
         <div className="ug-field">
           <label className="ug-label">Confirm New Password</label>
-          <input
-            className="ug-input"
-            type="password"
+          <PasswordInput
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             minLength={8}

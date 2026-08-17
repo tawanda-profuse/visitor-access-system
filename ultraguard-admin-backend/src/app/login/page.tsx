@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { ApiClientError } from "@/lib/api-client";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -58,10 +60,8 @@ export default function LoginPage() {
             <label className="ug-label" htmlFor="password">
               Password
             </label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
-              className="ug-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -72,6 +72,12 @@ export default function LoginPage() {
             {submitting ? "Signing in…" : "Sign In"}
           </button>
         </form>
+
+        <div style={{ textAlign: "center", marginTop: "1rem" }}>
+          <Link href="/forgot-password" style={{ fontSize: "0.85rem", color: "var(--ug-text-secondary)" }}>
+            Forgot password?
+          </Link>
+        </div>
       </div>
     </div>
   );

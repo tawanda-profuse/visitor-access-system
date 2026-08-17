@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ResidentLocationModal } from "@/components/ResidentLocationModal";
 import { useAuth } from "@/lib/auth-context";
+import { isPropertyAdmin } from "@/lib/roles";
 import type { Resident, Property, Pagination } from "@/lib/types";
 import { ResidentFormModal, flattenUnitOptions } from "./ResidentFormModal";
 
@@ -23,6 +25,7 @@ export default function ResidentsPage() {
   const [modalMode, setModalMode] = useState<"add" | "edit" | null>(null);
   const [editingResident, setEditingResident] = useState<Resident | null>(null);
   const [locatingResident, setLocatingResident] = useState<Resident | null>(null);
+  const [propertiesLoaded, setPropertiesLoaded] = useState(false);
 
   async function loadResidents(searchTerm: string, pageNum: number) {
     try {
@@ -39,7 +42,8 @@ export default function ResidentsPage() {
   useEffect(() => {
     apiFetch<{ properties: Property[] }>("/api/properties")
       .then((data) => setProperties(data.properties))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setPropertiesLoaded(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -77,6 +81,11 @@ export default function ResidentsPage() {
   }
 
   const unitOptions = flattenUnitOptions(properties);
+  // A Property Admin can't create a resident without a unit to assign them to, and
+  // onboarding only sets up the property + gates, not units — so a freshly onboarded
+  // property admin has none yet. Block resident creation with a clear next step rather
+  // than showing a create form with an empty/unusable unit picker.
+  const blockedByNoUnits = isPropertyAdmin(admin) && propertiesLoaded && unitOptions.length === 0;
 
   return (
     <>
@@ -84,18 +93,29 @@ export default function ResidentsPage() {
         title="Residents"
         subtitle="Manage resident profiles, contact details, addresses, and unit assignments."
         actions={
-          <button className="ug-btn ug-btn-primary" onClick={() => setModalMode("add")}>
-            + Add Resident
-          </button>
+          blockedByNoUnits ? null : (
+            <button className="ug-btn ug-btn-primary" onClick={() => setModalMode("add")}>
+              + Add Resident
+            </button>
+          )
         }
       />
 
       {error ? <div className="ug-banner ug-banner-danger">{error}</div> : null}
 
+      {blockedByNoUnits ? (
+        <div className="ug-banner ug-banner-danger">
+          Add a unit to your property before you can create residents.{" "}
+          <Link href="/properties" style={{ color: "inherit", textDecoration: "underline" }}>
+            Go to Properties
+          </Link>
+        </div>
+      ) : null}
+
       <div className="ug-toolbar">
         <input
           className="ug-input"
-          style={{ maxWidth: 320 }}
+          style={{ width: "100%", maxWidth: 420 }}
           placeholder="Search by name, phone, or email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -183,6 +203,12 @@ export default function ResidentsPage() {
         <ResidentFormModal
           resident={modalMode === "edit" ? editingResident : null}
           unitOptions={unitOptions}
+          // A Property Admin's own resident is implicitly scoped to (and requires) a
+          // unit in their property; a Super Admin's "+ Add Resident" here always
+          // creates a standalone resident with no unit/property picker at all — that
+          // flow now lives on the Properties page instead.
+          showUnitPicker={isPropertyAdmin(admin)}
+          requireUnit={isPropertyAdmin(admin)}
           onClose={() => {
             setModalMode(null);
             setEditingResident(null);

@@ -39,7 +39,7 @@ Called every time a visitor enters a PIN or a QR code is scanned.
 {
   "success": true,
   "data": {
-    "result": "SUCCESS", // SUCCESS | EXPIRED | DENIED | INVALID
+    "result": "SUCCESS", // SUCCESS | EXPIRED | DENIED | INVALID | WRONG_LOCATION
     "gateAction": "OPEN", // OPEN | DENY — what the relay should do
     "message": "Access granted"
   }
@@ -49,6 +49,17 @@ Called every time a visitor enters a PIN or a QR code is scanned.
 Target latency per SRS 3.2: **under 1.5 seconds** end-to-end under normal network
 conditions. The device should have its own timeout (recommend 2–3s) and fall back to
 `DENY` + a "try again / call guard" message on timeout, never fail open.
+
+`WRONG_LOCATION` was added when a resident's access code is presented at a gate
+belonging to a property the resident isn't linked to (e.g. tried at the wrong estate).
+Device integrators don't need to special-case it — like every non-`SUCCESS` result it
+maps to `gateAction: "DENY"`, and `message` already carries a human-readable reason to
+show on the intercom screen if it has one.
+
+A software-only alternative to this hardware integration now also exists for
+locations without capable intercom equipment: **Security Guard mode** in the resident
+mobile app (`POST /api/security-guard/verify`, no device credential — see the app's
+`/guard` screens). It calls the same underlying verification logic as this endpoint.
 
 ### `POST /api/gate/heartbeat`
 

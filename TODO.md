@@ -1,14 +1,14 @@
 # TODO List
 
-- SMS Gateway integration
-- Re-deploy to digital ocean
+- Re-deploy backend to digital ocean
 - Intercom Hardware integration
-- Resident Map full-screen view
+- Ensure that gate passes only work for intended visitor and resident only with the suitable server response message.
+- Is it possible to integrate the users default authentication option for all future attempts to access the platform after signing using the devices authentication method (fingerprint, face ID, password, etc).
+- This platform will be offered by the security company as a paid service. The super Admin should be able to delete or temporarily suspend a property admins account for whatever non-compliance reason. No need to integrate a payment gateway, just a way for the super admin to suspend a platform admins account via a simplified interface. Suspended platform admin accounts should not be able to login.
+- Implement a way, if possible to include a link saying "Download Mobile App" in the email to download the most recent APK for Android users when they receive their resident account invitation. This should use the most recent version of the application.
+- On the web portal From the Residents management page, there should be a way to toggle a full-screen view of the Map.
 - Ensure that users that press "Send Emergency Alert" can also write a message.
-- When running the application locally via Expo Go, it uses the production URL.
-- Integrate adverts that only the admin user can create from their web portal. For example, a 2 second ad that shows when a user tries to generate an access code from the mobile app.
-- Create a separate web portal for property administrators allowing them to manage their properties. Admin should create and grant access to these property admins by sending them an email invitation. Property admins can create residents. Property admin should register property details after opening the invite link and set their password. Property admins should only see data relevant to their property.
-- Residents should have a national ID number.
-- QR Codes are not working.
-- Security guards should have access to the mobile application allowing them to verify access codes against a specific location (scanning QR code or manually verifying the code by comparing it to the database using a simple interface).
-- Remove SMS's and rely on email for Ultraguard admin to create property managers and for property managers to create residents for the mobile app. They should receive emails with login instructions (password reset).
+- Add placeholders for adverts with rounded corners to the mobile app (bottom of the Login page, Home, Invite, History, and Settings pages). Just write "Ad Coming soon" with a generic dark text and gray background. In the future, the company would like to add adverts about their other products and services.
+- Add filters to the History page on the mobile app to filter based on status and date
+- Setup email SMTP with Brevo (.env.example)
+- Add the ability for admins to delete a gate

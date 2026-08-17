@@ -23,9 +23,10 @@ const patchSchema = z.object({
 });
 
 // PATCH /api/admin/settings — Admin Portal: Profile Settings page, "Support Email".
+// Only the Super Admin may change this.
 export async function PATCH(req: NextRequest) {
   try {
-    requireAdmin(req, ["SUPER_ADMIN", "OPERATOR"]);
+    requireAdmin(req, ["SUPER_ADMIN"]);
     const body = patchSchema.parse(await req.json());
     const supportEmail = await setSupportEmail(body.supportEmail);
     return ok({ supportEmail });

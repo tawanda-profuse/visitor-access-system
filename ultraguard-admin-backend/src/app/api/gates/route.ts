@@ -3,16 +3,17 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 import { prisma } from "@/lib/prisma";
-import { ok, fail, handleApiError } from "@/lib/api-response";
-import { requireAdmin } from "@/lib/auth";
+import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
+import { requirePropertyScopedAdmin } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 // GET /api/gates — Admin Portal: gate/intercom device inventory & connectivity status.
 export async function GET(req: NextRequest) {
   try {
-    requireAdmin(req);
+    const { propertyId } = requirePropertyScopedAdmin(req);
     const gates = await prisma.gate.findMany({
+      where: propertyId ? { propertyId } : undefined,
       include: { property: true },
       orderBy: { createdAt: "desc" },
     });
@@ -38,8 +39,14 @@ const createSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
-    requireAdmin(req, ["SUPER_ADMIN", "OPERATOR"]);
+    const { propertyId } = requirePropertyScopedAdmin(req, ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"]);
     const body = createSchema.parse(await req.json());
+
+    // A Property Admin can only ever provision gates for their own property — ignore
+    // any client-supplied propertyId rather than trusting it.
+    if (propertyId && body.propertyId !== propertyId) {
+      throw new ApiError("You can only add gates to your own property", 403);
+    }
 
     const apiKey = nanoid(32);
     const gate = await prisma.gate.create({

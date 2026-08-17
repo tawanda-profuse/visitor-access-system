@@ -2,21 +2,30 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requirePropertyScopedAdmin } from "@/lib/auth";
 import { buildAddress } from "@/lib/address";
 import { normalizePhone } from "@/lib/phone";
 
 export const runtime = "nodejs";
 
+async function loadScopedResident(id: string, propertyId: string | null) {
+  const resident = await prisma.resident.findUnique({
+    where: { id },
+    include: { units: { include: { unit: { include: { property: true } } } } },
+  });
+  if (!resident) throw new ApiError("Resident not found", 404);
+  if (propertyId && !resident.units.some((ru) => ru.unit.propertyId === propertyId)) {
+    // Don't distinguish "exists elsewhere" from "doesn't exist" to a scoped admin.
+    throw new ApiError("Resident not found", 404);
+  }
+  return resident;
+}
+
 // GET /api/residents/:id — Admin: view a single resident profile.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    requireAdmin(req);
-    const resident = await prisma.resident.findUnique({
-      where: { id: params.id },
-      include: { units: { include: { unit: { include: { property: true } } } } },
-    });
-    if (!resident) throw new ApiError("Resident not found", 404);
+    const { propertyId } = requirePropertyScopedAdmin(req);
+    const resident = await loadScopedResident(params.id, propertyId);
     return ok({ resident });
   } catch (error) {
     return handleApiError(error);
@@ -39,7 +48,9 @@ const patchSchema = z.object({
 // PATCH /api/residents/:id — Admin: edit profile / suspend / remove (soft delete via status).
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    requireAdmin(req, ["SUPER_ADMIN", "OPERATOR"]);
+    const { propertyId } = requirePropertyScopedAdmin(req, ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"]);
+    const existing = await loadScopedResident(params.id, propertyId);
+
     const parsed = patchSchema.parse(await req.json());
     const body = parsed.phone !== undefined ? { ...parsed, phone: normalizePhone(parsed.phone) } : parsed;
 
@@ -51,8 +62,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     let data: typeof body & { address?: string | null } = body;
     if (addressFieldsTouched) {
-      const existing = await prisma.resident.findUnique({ where: { id: params.id } });
-      if (!existing) throw new ApiError("Resident not found", 404);
       data = {
         ...body,
         address: buildAddress({
@@ -72,7 +81,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-// DELETE /api/residents/:id — Admin: permanently remove a resident record.
+// DELETE /api/residents/:id — Super Admin: permanently remove a resident record.
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     requireAdmin(req, ["SUPER_ADMIN"]);

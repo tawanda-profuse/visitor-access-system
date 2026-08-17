@@ -17,40 +17,45 @@ there too and it's the fastest way to sanity-check UI changes without a device).
 
 ### Pointing at the backend
 
-See `src/constants/config.ts` for the resolution order. `localhost` only resolves to the
-right machine on web, so it's used as the default there. On native (iOS/Android), the app
-instead derives the dev machine's LAN IP from the Metro dev server URL automatically —
-this covers the common case of an Expo Go / dev-client device on the same Wi-Fi network
-as your dev machine.
+See `src/constants/config.ts` for the resolution order. **Dev builds (Expo Go, a dev
+client, or `expo start --web`) always target your local backend, never the deployed
+production URL**: `localhost` on web (that's the only platform where it resolves to the
+right machine), or the dev machine's LAN IP derived from the Metro dev server URL
+automatically on native (iOS/Android) — this covers the common case of an Expo Go /
+dev-client device on the same Wi-Fi network as your dev machine. A **production build**
+(anything not `__DEV__`, e.g. an installed APK/EAS build) instead uses
+`expo.extra.apiBaseUrl` in `app.json` — the deployed backend URL.
 
-That auto-detection doesn't help when:
-
-- The device only has a USB connection with no shared Wi-Fi network (run
-  `adb reverse tcp:3000 tcp:3000` on Android, or set the override below).
-- You're pointing at a deployed backend (e.g. a Koyeb app) instead of your dev machine.
-
-For those cases, set an explicit override — either `expo.extra.apiBaseUrl` in `app.json`,
-or an env var: `EXPO_PUBLIC_API_BASE_URL=http://192.168.1.50:3000 npm start`.
+The automatic LAN detection doesn't help when the device only has a USB connection with
+no shared Wi-Fi network — run `npm run reverse` (Android only; forwards Metro + the API
+port over `adb reverse`) or set an explicit override: `EXPO_PUBLIC_API_BASE_URL=http://192.168.1.50:3000 npm start`.
+An explicit `EXPO_PUBLIC_API_BASE_URL` always wins over both the dev and production
+defaults, in case you need to point at something else entirely (e.g. a staging backend).
 
 ## What's implemented (Phase 2 scope)
 
-- **Auth**: phone number + OTP sign-in (`app/login.tsx`, `app/verify.tsx`), session
-  persisted in `expo-secure-store`. No phone number needs to be pre-registered — the
-  backend auto-creates a resident on first OTP request. Since no SMS provider is
-  connected yet, the login screen itself displays the OTP in a "No SMS Gateway
-  Connected Yet" card (rather than texting it) so the app is fully testable without a
-  real SMS account; this disappears automatically once the backend's `OTP_DEV_MODE` is
-  turned off. (Biometric/Face ID quick-login and multi-property switching are not
-  implemented — see top-level README for what's deferred.)
+- **Auth**: phone-or-email + password sign-in (`app/login.tsx`), session persisted in
+  `expo-secure-store`. SMS/OTP has been removed entirely — a resident's password is set
+  via a link emailed when an admin creates their account (or via "Forgot Password" on
+  the login screen), opened on the web, not in this app. (Biometric/Face ID quick-login
+  and multi-property switching are not implemented — see top-level README for what's
+  deferred.)
+- **Security Guard mode** (`app/guard/`): reachable from the login screen without
+  signing in. A guard picks a gate/location, then scans a Gate Pass QR (in-app camera,
+  `expo-camera`) or types its PIN, and sees a big "ACCESS GRANTED"/"ACCESS DENIED"
+  result with visitor/gate/property details on success — a software-only stand-in for
+  locations without gate hardware. Verification is checked against the specific gate
+  chosen, so a pass valid at one property's gate is rejected at another's.
 - **Invite Visitor** (`app/(tabs)/invite.tsx`): generate One-Time, Time-Bound, or
-  Recurring passes with a visitor name/phone, date/time window, and (for recurring)
-  day-of-week + daily time window.
+  Recurring passes with a visitor name/phone/optional ID number, date/time window, and
+  (for recurring) day-of-week + daily time window.
 - **Visitor Pass detail** (`app/code/[id].tsx`): shows the 6-digit PIN and a scannable
   QR code, one-tap **Share** (opens the native share sheet — WhatsApp/SMS/Email are
   whatever the user has installed, satisfying "one-click sharing" without a
   provider-specific SDK), and pass revocation.
 - **Home dashboard** (`app/(tabs)/index.tsx`): active passes, recent gate activity, and
-  a prominent **Emergency / Panic Trigger** button.
+  a prominent **Emergency / Panic Trigger** button with an optional message — immediately
+  emails the resident's Property Admin (or Super Admin if standalone).
 - **History** (`app/(tabs)/history.tsx`): full visitor pass list + entry log audit
   trail, each with status badges (Success/Expired/Denied/Invalid).
 - **Settings** (`app/(tabs)/settings.tsx`): **theme picker — Light / Dark / System

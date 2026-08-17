@@ -41,21 +41,17 @@ dev:backend`, `npm run dev:mobile`), or `cd` into `ultraguard-resident-app` and 
 
 1. `npm run start:all`, then open the app in Expo Go / a simulator (see the mobile
    README for connecting a physical device or emulator to the right API URL).
-2. **No phone number needs to be pre-registered.** `POST /api/auth/resident/request-otp`
-   auto-creates a resident record on first sign-in (`prisma.resident.upsert` in
-   `ultraguard-admin-backend/src/app/api/auth/resident/request-otp/route.ts`) — enter
-   any phone number on the login screen and it just works. The seeded resident
-   (`+27820000000`, see the backend README) is only useful if you want a resident that
-   already has a name/unit assigned; everyone else starts as "New Resident" with no
-   unit until an admin assigns one via the API.
-3. Since no SMS provider is connected yet, the login screen itself displays the OTP
-   (labeled "No SMS Gateway Connected Yet") instead of texting it — just tap Continue.
-   This only happens while the backend's `OTP_DEV_MODE=true`; flip it to `false` once a
-   real provider is wired up and this UI naturally stops appearing (the API stops
-   returning `devOtp`).
-4. From there: invite a visitor, view the generated PIN/QR, and simulate a gate
+2. Sign in with the seeded resident: phone `+27820000000` / password `ChangeMe123!`
+   (see the backend README / `.env.example` for `SEED_RESIDENT_PASSWORD`). A resident
+   created by an admin (via the portal) receives an invite email with a link to set
+   their own password before they can log in — with no SMTP configured locally, that
+   email is logged to the console instead of sent (see "Email setup" in the backend
+   README), so you can copy the link straight out of the terminal.
+3. From there: invite a visitor, view the generated PIN/QR, and simulate a gate
    scan by POSTing to `/api/gate/validate` yourself (see the backend README's curl
-   examples) — there's no real intercom to walk up to yet.
+   examples), or use **Security Guard mode** from the mobile app's login screen to
+   scan/enter the code without any account — there's no real intercom to walk up to
+   yet, so both are stand-ins for it.
 
 ## Building an installable app
 
@@ -83,10 +79,11 @@ Java is version 8). `android:apk:local` is there for whenever that changes.
 | One-click sharing (WhatsApp/SMS/Email) | ✅ Built via native share sheet |
 | Real-time notifications | ⚠️ Registration plumbing built; actual push **send** is a placeholder (no provider chosen) |
 | Visitor history & logs | ✅ Built |
-| Emergency / panic trigger | ✅ Built (alert is logged server-side; guard-desk notification channel is a placeholder) |
-| Phone OTP authentication | ✅ Built (OTP delivery is a placeholder — logged/echoed in dev, no SMS provider chosen) |
+| Emergency / panic trigger | ✅ Built, with an optional message — immediately emails the resident's Property Admin (or Super Admin if standalone) |
+| Phone/email + password authentication | ✅ Built — SMS/OTP has been removed entirely; login accepts either identifier |
 | Fingerprint/Face ID quick login | ❌ Not built |
 | Multi-property management | ⚠️ Data model supports it (`ResidentUnit`); no UI picker built |
+| Security Guard mode (no-account gate verification) | ✅ Built — scan QR or enter PIN against a chosen gate, no login required |
 
 ### 3.2 Gate Intercom & Hardware Integration Interface
 
@@ -107,17 +104,20 @@ exposes a hardware-agnostic HTTP contract (`/api/gate/validate`, `/api/gate/hear
 
 | Requirement | Status |
 |---|---|
-| Resident directory management (API) | ✅ Built (`/api/residents`) |
-| Live gate activity monitor (API) | ✅ Built (`/api/entry-logs`, `/api/admin/dashboard/summary`) |
-| Audit trail & reporting (API) | ✅ Built (entry logs are queryable/filterable) |
-| **Web dashboard UI** | ❌ Not built — per your instructions this MVP delivers **API endpoints only** for the admin portal, no frontend. The API is ready for a dashboard to be built against it whenever that's prioritized. |
+| Resident directory management | ✅ Built (`/api/residents` + portal UI) |
+| Live gate activity monitor | ✅ Built (`/api/entry-logs`, `/api/admin/dashboard/summary` + portal UI, live via SSE) |
+| Audit trail & reporting | ✅ Built (entry logs are queryable/filterable) |
+| Web dashboard UI | ✅ Built (`ultraguard-admin-backend/src/app/(portal)/**`) |
+| Property Admin role (scoped to one property, invited by Super Admin, one-time onboarding wizard) | ✅ Built |
+| Super Admin vs. Property Admin data scoping across all portal pages | ✅ Built |
+| Admin/resident "Forgot Password" | ✅ Built, both via emailed reset links |
 
 ### 4 Non-Functional & Security Requirements
 
 | Requirement | Status |
 |---|---|
 | TLS 1.3 in transit | ⚠️ Enforced by deployment (HTTPS termination), not by this codebase directly — dev server runs plain HTTP locally as normal |
-| Passwords/tokens hashed (bcrypt) | ✅ Admin passwords + OTP codes + gate API keys all bcrypt-hashed |
+| Passwords/tokens hashed (bcrypt) | ✅ Admin + resident passwords and gate API keys all bcrypt-hashed; invite/reset tokens are SHA-256-hashed at rest |
 | Failsafe defaults or gate hardware | ❌ N/A until hardware exists; documented as a guard-call-button fallback in the protocol doc |
 | Configurable data retention / auto-purge | ❌ Not built — no scheduled purge job exists yet |
 
@@ -128,20 +128,24 @@ exposes a hardware-agnostic HTTP contract (`/api/gate/validate`, `/api/gate/hear
   enums (uses `String` fields + zod validation at the API layer) so it stays portable
   to SQLite for contributors without a local Postgres — see the backend README's
   "Using SQLite instead" section.
-- **Auth**: two independent JWT subject types (resident via phone+OTP, admin via
-  email+password) rather than a single unified user table, matching the SRS's clear
-  separation between resident and security-company actors.
-- **OTP/SMS and push notifications are stubbed, not faked silently** — every stub logs
-  clearly (`[OTP:PLACEHOLDER]`, `[PUSH:PLACEHOLDER]`) and dev-mode OTP responses echo
-  the code back in the API response so the mobile app is fully testable end-to-end
-  without a real SMS account.
+- **Auth**: two independent JWT subject types (resident via phone-or-email + password,
+  admin via email+password) rather than a single unified user table, matching the SRS's
+  clear separation between resident and security-company actors. SMS/OTP has been
+  removed entirely — see `ultraguard-admin-backend/README.md`'s "Auth model" section.
+- **Push notifications are stubbed, not faked silently** — the stub logs clearly
+  (`[PUSH:PLACEHOLDER]`) so the gap is obvious rather than silently no-op'd.
+- **Email is real, not stubbed** — Nodemailer via a Brevo SMTP relay (free tier) sends
+  invites, password resets, and panic alerts. With no SMTP credentials configured
+  locally, emails are logged to the console instead of sent, so everything is testable
+  end-to-end without a real email account — see the backend README's "Email setup".
 
 ## Suggested next steps
 
 1. Answer the hardware vendor questions in `TO_LEARN.md`, then flesh out the offline-
    sync endpoints in the protocol doc once a device is chosen (Phase 3).
-2. Pick an SMS/WhatsApp provider (Twilio, WhatsApp Business API) and a push provider
-   (Expo push service is already half-wired; just needs the actual send call).
-3. Build the admin web dashboard UI against the already-complete API.
-4. Add biometric quick-login and a multi-property/unit switcher to the mobile app.
-5. Commission real app icon/splash assets before any app store submission (Phase 4).
+2. Wire up a real push provider (Expo push service is already half-wired; just needs
+   the actual send call).
+3. Add biometric quick-login and a multi-property/unit switcher to the mobile app.
+4. Commission real app icon/splash assets before any app store submission (Phase 4).
+5. Verify a sender domain in Brevo for production email deliverability (see the backend
+   README's "Email setup").

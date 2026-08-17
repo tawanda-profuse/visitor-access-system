@@ -11,11 +11,20 @@ type UnitOption = { id: string; label: string; propertyName: string };
 export function ResidentFormModal({
   resident,
   unitOptions,
+  requireUnit = false,
+  showUnitPicker = true,
   onClose,
   onSaved,
 }: {
   resident: Resident | null;
   unitOptions: UnitOption[];
+  // When true (e.g. a Property Admin's own resident, or "Add Resident" from within a
+  // property's resident-management modal), the unit picker is required and has no
+  // "no unit" option.
+  requireUnit?: boolean;
+  // When false, the unit-assignment UI is hidden entirely and the resident is always
+  // created standalone (Super Admin's "+ Add Resident" on the Residents page).
+  showUnitPicker?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -27,10 +36,11 @@ export function ResidentFormModal({
   const [streetName, setStreetName] = useState(resident?.streetName ?? "");
   const [city, setCity] = useState(resident?.city ?? "");
   const [country, setCountry] = useState(resident?.country ?? "");
-  const [unitId, setUnitId] = useState("");
+  const [unitId, setUnitId] = useState(requireUnit ? unitOptions[0]?.id ?? "" : "");
   const [status, setStatus] = useState(resident?.status ?? "ACTIVE");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
 
   const addressPreview = buildAddress({ houseNumber, streetName, city, country });
 
@@ -44,7 +54,7 @@ export function ResidentFormModal({
           method: "PATCH",
           body: {
             name,
-            phone,
+            phone: phone || null,
             email: email || null,
             houseNumber: houseNumber || null,
             streetName: streetName || null,
@@ -53,27 +63,46 @@ export function ResidentFormModal({
             status,
           },
         });
+        onSaved();
       } else {
         await apiFetch("/api/residents", {
           method: "POST",
           body: {
             name,
-            phone,
-            email: email || undefined,
+            phone: phone || undefined,
+            email,
             houseNumber: houseNumber || undefined,
             streetName: streetName || undefined,
             city: city || undefined,
             country: country || undefined,
-            unitId: unitId || undefined,
+            unitId: showUnitPicker && unitId ? unitId : undefined,
           },
         });
+        // An invite email is sent server-side on every successful creation — surface a
+        // confirmation instead of silently closing.
+        setInvitedEmail(email);
       }
-      onSaved();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Failed to save resident");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (invitedEmail) {
+    return (
+      <Modal title="Resident Added" onClose={onSaved}>
+        <div className="ug-banner ug-banner-success">
+          {name} was added. An invite email has been sent to {invitedEmail} with a link to set their mobile app
+          password.
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button className="ug-btn ug-btn-primary" onClick={onSaved}>
+            Done
+          </button>
+        </div>
+      </Modal>
+    );
   }
 
   return (
@@ -87,12 +116,12 @@ export function ResidentFormModal({
 
         <div className="ug-form-row">
           <div className="ug-field">
-            <label className="ug-label">Phone</label>
-            <input className="ug-input" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+            <label className="ug-label">Email</label>
+            <input className="ug-input" type="email" value={email ?? ""} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div className="ug-field">
-            <label className="ug-label">Email (optional)</label>
-            <input className="ug-input" type="email" value={email ?? ""} onChange={(e) => setEmail(e.target.value)} />
+            <label className="ug-label">Phone (optional)</label>
+            <input className="ug-input" value={phone ?? ""} onChange={(e) => setPhone(e.target.value)} />
           </div>
         </div>
 
@@ -125,11 +154,12 @@ export function ResidentFormModal({
           </p>
         ) : null}
 
-        {!isEdit ? (
+        {!isEdit && showUnitPicker ? (
           <div className="ug-field">
-            <label className="ug-label">Assign to Unit (optional)</label>
-            <select className="ug-select" value={unitId} onChange={(e) => setUnitId(e.target.value)}>
-              <option value="">— No unit —</option>
+            <label className="ug-label">{requireUnit ? "Assign to Unit" : "Assign to Unit (optional)"}</label>
+            <select className="ug-select" value={unitId} onChange={(e) => setUnitId(e.target.value)} required={requireUnit}>
+              {!requireUnit ? <option value="">— No unit —</option> : null}
+              {unitOptions.length === 0 ? <option value="">No units available</option> : null}
               {unitOptions.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.propertyName} — {u.label}
@@ -154,7 +184,11 @@ export function ResidentFormModal({
           <button type="button" className="ug-btn ug-btn-secondary" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="ug-btn ug-btn-primary" disabled={submitting}>
+          <button
+            type="submit"
+            className="ug-btn ug-btn-primary"
+            disabled={submitting || (!isEdit && showUnitPicker && requireUnit && !unitId)}
+          >
             {submitting ? "Saving…" : isEdit ? "Save Changes" : "Add Resident"}
           </button>
         </div>

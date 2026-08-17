@@ -2,9 +2,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { ok, fail, handleApiError, ApiError } from "@/lib/api-response";
-import { isAccessCodeCurrentlyValid } from "@/lib/access-codes";
-import { sendPushNotification } from "@/lib/push";
+import { ok, handleApiError, ApiError } from "@/lib/api-response";
+import { verifyAccessAtGate, type GateWithProperty } from "@/lib/gate-verification";
 import { publishEvent } from "@/lib/event-bus";
 
 export const runtime = "nodejs";
@@ -33,11 +32,11 @@ export async function POST(req: NextRequest) {
     const apiKey = req.headers.get("x-gate-api-key");
     if (!apiKey) throw new ApiError("Missing x-gate-api-key header", 401);
 
-    let gate = null as Awaited<ReturnType<typeof prisma.gate.findUnique>> | null;
+    let gate: GateWithProperty | null = null;
     const body = schema.parse(await req.json());
 
     if (body.gateId) {
-      gate = await prisma.gate.findUnique({ where: { id: body.gateId } });
+      gate = await prisma.gate.findUnique({ where: { id: body.gateId }, include: { property: true } });
       if (!gate || !(await bcrypt.compare(apiKey, gate.apiKeyHash))) {
         throw new ApiError("Invalid gate credentials", 401);
       }
@@ -51,83 +50,9 @@ export async function POST(req: NextRequest) {
       throw new ApiError("Invalid gate credentials", 401);
     }
 
-    const accessCode = await prisma.accessCode.findFirst({
-      where: body.method === "PIN" ? { code: body.input } : { qrToken: body.input },
-      include: { resident: true },
-    });
+    const result = await verifyAccessAtGate({ gate, input: body.input, method: body.method, verifiedVia: "HARDWARE" });
 
-    const logBase = {
-      gateId: gate?.id,
-      method: body.method,
-      visitorName: accessCode?.visitorName,
-      accessCodeId: accessCode?.id,
-      residentId: accessCode?.residentId,
-    };
-
-    // Drives the admin portal's live Dashboard/Entry Logs feed (see src/lib/event-bus.ts) —
-    // every branch below logs through here rather than calling prisma.entryLog.create directly.
-    async function logEntry(data: { result: string; reason?: string }) {
-      const entryLog = await prisma.entryLog.create({
-        data: { ...logBase, ...data },
-        include: { gate: true, resident: true, accessCode: true },
-      });
-      publishEvent("entry-log", "created", entryLog);
-      return entryLog;
-    }
-
-    if (!accessCode) {
-      await logEntry({ result: "INVALID", reason: "Code not recognized" });
-      return ok({ result: "INVALID", gateAction: "DENY", message: "Code not recognized" }, 200);
-    }
-
-    if (accessCode.status === "REVOKED") {
-      await logEntry({ result: "DENIED", reason: "Code was revoked" });
-      return ok({ result: "DENIED", gateAction: "DENY", message: "Code was revoked" });
-    }
-
-    if (accessCode.status === "USED" && accessCode.type !== "RECURRING") {
-      await logEntry({ result: "DENIED", reason: "Code already used" });
-      return ok({ result: "DENIED", gateAction: "DENY", message: "Code already used" });
-    }
-
-    const validity = isAccessCodeCurrentlyValid(accessCode);
-    if (!validity.valid) {
-      const expired = new Date() > accessCode.validUntil;
-      if (expired && accessCode.status === "ACTIVE") {
-        await prisma.accessCode.update({ where: { id: accessCode.id }, data: { status: "EXPIRED" } });
-      }
-      await logEntry({ result: expired ? "EXPIRED" : "DENIED", reason: validity.reason });
-      return ok({
-        result: expired ? "EXPIRED" : "DENIED",
-        gateAction: "DENY",
-        message: validity.reason,
-      });
-    }
-
-    if (accessCode.useCount >= accessCode.maxUses) {
-      await logEntry({ result: "DENIED", reason: "Maximum uses reached" });
-      return ok({ result: "DENIED", gateAction: "DENY", message: "Maximum uses reached" });
-    }
-
-    const newUseCount = accessCode.useCount + 1;
-    await prisma.accessCode.update({
-      where: { id: accessCode.id },
-      data: {
-        useCount: newUseCount,
-        status: accessCode.type === "ONE_TIME" || newUseCount >= accessCode.maxUses ? "USED" : "ACTIVE",
-      },
-    });
-
-    await logEntry({ result: "SUCCESS" });
-
-    await sendPushNotification({
-      pushToken: accessCode.resident.pushToken,
-      title: "Visitor Entry",
-      body: `${accessCode.visitorName} has entered using their access code.`,
-      data: { accessCodeId: accessCode.id },
-    });
-
-    return ok({ result: "SUCCESS", gateAction: "OPEN", message: "Access granted" });
+    return ok({ result: result.entryLogResult, gateAction: result.gateAction, message: result.message });
   } catch (error) {
     return handleApiError(error);
   }

@@ -4,20 +4,28 @@ import { useEffect, useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { PageHeader } from "@/components/PageHeader";
 import { Modal } from "@/components/Modal";
+import { useAuth } from "@/lib/auth-context";
+import { isPropertyAdmin } from "@/lib/roles";
 import type { Property } from "@/lib/types";
+import { PropertyResidentsModal } from "./PropertyResidentsModal";
 
 export default function PropertiesPage() {
+  const { admin } = useAuth();
   const [properties, setProperties] = useState<Property[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAddProperty, setShowAddProperty] = useState(false);
   const [addingUnitTo, setAddingUnitTo] = useState<Property | null>(null);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [managingResidentsFor, setManagingResidentsFor] = useState<Property | null>(null);
 
   async function load() {
     try {
       const data = await apiFetch<{ properties: Property[] }>("/api/properties");
       setProperties(data.properties);
+      return data.properties;
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Failed to load properties");
+      return null;
     }
   }
 
@@ -25,15 +33,27 @@ export default function PropertiesPage() {
     load();
   }, []);
 
+  // Keep the resident-management modal's `property` prop synced with fresh data after
+  // any add/remove inside it, rather than closing the modal on every change.
+  async function reloadAndResync() {
+    const fresh = await load();
+    if (fresh && managingResidentsFor) {
+      const updated = fresh.find((p) => p.id === managingResidentsFor.id);
+      setManagingResidentsFor(updated ?? null);
+    }
+  }
+
   return (
     <>
       <PageHeader
         title="Properties"
         subtitle="Managed estates/buildings and the units within them."
         actions={
-          <button className="ug-btn ug-btn-primary" onClick={() => setShowAddProperty(true)}>
-            + Add Property
-          </button>
+          !isPropertyAdmin(admin) ? (
+            <button className="ug-btn ug-btn-primary" onClick={() => setShowAddProperty(true)}>
+              + Add Property
+            </button>
+          ) : undefined
         }
       />
 
@@ -62,9 +82,17 @@ export default function PropertiesPage() {
                   <h2 style={{ fontSize: "1rem", margin: "0 0 0.2rem" }}>{property.name}</h2>
                   <p style={{ color: "var(--ug-text-secondary)", fontSize: "0.85rem", margin: 0 }}>{property.address}</p>
                 </div>
-                <button className="ug-btn ug-btn-secondary ug-btn-sm" onClick={() => setAddingUnitTo(property)}>
-                  + Add Unit
-                </button>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <button className="ug-btn ug-btn-secondary ug-btn-sm" onClick={() => setEditingProperty(property)}>
+                    Edit
+                  </button>
+                  <button className="ug-btn ug-btn-secondary ug-btn-sm" onClick={() => setManagingResidentsFor(property)}>
+                    Manage Residents
+                  </button>
+                  <button className="ug-btn ug-btn-secondary ug-btn-sm" onClick={() => setAddingUnitTo(property)}>
+                    + Add Unit
+                  </button>
+                </div>
               </div>
               <div className="ug-table-scroll">
               <table className="ug-table">
@@ -108,6 +136,25 @@ export default function PropertiesPage() {
       {addingUnitTo ? (
         <AddUnitModal property={addingUnitTo} onClose={() => setAddingUnitTo(null)} onSaved={() => { setAddingUnitTo(null); load(); }} />
       ) : null}
+
+      {editingProperty ? (
+        <EditPropertyModal
+          property={editingProperty}
+          onClose={() => setEditingProperty(null)}
+          onSaved={() => {
+            setEditingProperty(null);
+            load();
+          }}
+        />
+      ) : null}
+
+      {managingResidentsFor ? (
+        <PropertyResidentsModal
+          property={managingResidentsFor}
+          onClose={() => setManagingResidentsFor(null)}
+          onChanged={reloadAndResync}
+        />
+      ) : null}
     </>
   );
 }
@@ -150,6 +197,59 @@ function AddPropertyModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
           </button>
           <button type="submit" className="ug-btn ug-btn-primary" disabled={submitting}>
             {submitting ? "Saving…" : "Add Property"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditPropertyModal({
+  property,
+  onClose,
+  onSaved,
+}: {
+  property: Property;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(property.name);
+  const [address, setAddress] = useState(property.address);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await apiFetch(`/api/properties/${property.id}`, { method: "PATCH", body: { name, address } });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Failed to update property");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Modal title="Edit Property" onClose={onClose}>
+      {error ? <div className="ug-banner ug-banner-danger">{error}</div> : null}
+      <form onSubmit={handleSubmit}>
+        <div className="ug-field">
+          <label className="ug-label">Property Name</label>
+          <input className="ug-input" value={name} onChange={(e) => setName(e.target.value)} required />
+        </div>
+        <div className="ug-field">
+          <label className="ug-label">Address</label>
+          <input className="ug-input" value={address} onChange={(e) => setAddress(e.target.value)} required />
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.6rem", marginTop: "0.5rem" }}>
+          <button type="button" className="ug-btn ug-btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="ug-btn ug-btn-primary" disabled={submitting}>
+            {submitting ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </form>

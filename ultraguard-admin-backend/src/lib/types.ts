@@ -35,7 +35,7 @@ export type ResidentUnit = {
 export type Resident = {
   id: string;
   name: string;
-  phone: string;
+  phone: string | null;
   email: string | null;
   houseNumber: string | null;
   streetName: string | null;
@@ -46,6 +46,7 @@ export type Resident = {
   longitude: number | null;
   status: "ACTIVE" | "SUSPENDED" | "REMOVED";
   createdAt: string;
+  lastPropertyId?: string | null;
   units: ResidentUnit[];
 };
 
@@ -72,6 +73,7 @@ export type AccessCode = {
   validUntil: string;
   maxUses: number;
   useCount: number;
+  visitorIdNumber: string | null;
   createdAt: string;
   resident?: Resident;
 };
@@ -83,7 +85,8 @@ export type EntryLog = {
   gateId: string | null;
   visitorName: string | null;
   method: "PIN" | "QR";
-  result: "SUCCESS" | "EXPIRED" | "DENIED" | "INVALID";
+  result: "SUCCESS" | "EXPIRED" | "DENIED" | "INVALID" | "WRONG_LOCATION";
+  verifiedVia: "HARDWARE" | "SECURITY_GUARD";
   reason: string | null;
   occurredAt: string;
   gate?: Gate | null;
@@ -102,4 +105,11 @@ export type PanicAlert = {
   resident?: Resident;
   property?: Property | null;
   resolvedBy?: { name: string } | null;
+};
+
+// One-time plaintext API key echo returned alongside a newly-provisioned gate (either
+// from POST /api/gates or from the onboarding wizard's newlyCreatedGates list).
+export type GateApiKeyReveal = {
+  name: string;
+  apiKey: string;
 };

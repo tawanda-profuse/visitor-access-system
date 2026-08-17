@@ -64,6 +64,14 @@ export default function SettingsScreen() {
 
       <Button label="Log Out" onPress={onLogout} variant="secondary" />
 
+      <View style={{ gap: 10 }}>
+        <View style={{ height: 1, backgroundColor: colors.border }} />
+        <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: "center" }}>
+          Working the gate tonight?
+        </Text>
+        <Button label="Security Guard Mode" variant="secondary" onPress={() => router.push("/guard")} />
+      </View>
+
       <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: "center" }}>
         Ultra-Guard Security & Fire · Visitor Access Management System
       </Text>

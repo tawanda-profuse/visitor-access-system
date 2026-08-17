@@ -18,6 +18,7 @@ const TYPE_OPTIONS: { value: AccessCodeType; label: string; helper: string }[] =
 ];
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const ALPHANUMERIC_ONLY = /^[a-zA-Z0-9]+$/;
 
 function addHours(date: Date, hours: number) {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
@@ -35,6 +36,7 @@ export default function InviteScreen() {
   const [type, setType] = useState<AccessCodeType>("ONE_TIME");
   const [visitorName, setVisitorName] = useState("");
   const [visitorPhone, setVisitorPhone] = useState("");
+  const [visitorIdNumber, setVisitorIdNumber] = useState("");
   const [validFrom, setValidFrom] = useState(new Date());
   const [validUntil, setValidUntil] = useState(addHours(new Date(), 24));
   const [recurringDays, setRecurringDays] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -59,6 +61,10 @@ export default function InviteScreen() {
       setError("Select at least one day for a recurring pass.");
       return;
     }
+    if (visitorIdNumber.trim() && !ALPHANUMERIC_ONLY.test(visitorIdNumber.trim())) {
+      setError("Visitor ID must contain letters and numbers only (no spaces or symbols).");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -66,6 +72,7 @@ export default function InviteScreen() {
         type,
         visitorName: visitorName.trim(),
         visitorPhone: visitorPhone.trim() || undefined,
+        visitorIdNumber: visitorIdNumber.trim() || undefined,
         validFrom: validFrom.toISOString(),
         validUntil: validUntil.toISOString(),
         recurrenceRule:
@@ -123,10 +130,17 @@ export default function InviteScreen() {
       <TextField label="Visitor Name" placeholder="e.g. John Visitor" value={visitorName} onChangeText={setVisitorName} />
       <TextField
         label="Visitor Phone (optional)"
-        placeholder="+27 82 000 0000"
+        placeholder="+263 772 000 000"
         keyboardType="phone-pad"
         value={visitorPhone}
         onChangeText={setVisitorPhone}
+      />
+      <TextField
+        label="Visitor ID (optional)"
+        placeholder="e.g. ID or passport number"
+        autoCapitalize="characters"
+        value={visitorIdNumber}
+        onChangeText={setVisitorIdNumber}
       />
 
       {type !== "RECURRING" && (

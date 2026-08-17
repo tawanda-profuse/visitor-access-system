@@ -6,11 +6,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PaginationBar } from "@/components/PaginationBar";
 import { useLiveEvents } from "@/lib/live-events-context";
+import { useAuth } from "@/lib/auth-context";
+import { isPropertyAdmin } from "@/lib/roles";
 import type { PanicAlert, Pagination } from "@/lib/types";
 
 const PAGE_SIZE = 20;
 
 export default function PanicAlertsPage() {
+  const { admin } = useAuth();
   const [alerts, setAlerts] = useState<PanicAlert[] | null>(null);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [page, setPage] = useState(1);
@@ -40,8 +43,13 @@ export default function PanicAlertsPage() {
     load(page);
     if (event.action === "created") {
       const alert = event.data as PanicAlert;
-      setNewAlertBanner(`New panic alert from ${alert.resident?.name ?? "a resident"}${alert.message ? `: "${alert.message}"` : ""}`);
-      setTimeout(() => setNewAlertBanner(null), 8000);
+      // A Property Admin must never see the live-flash banner for another property's
+      // emergency — the list refetch above is already correctly scoped server-side, but
+      // the banner needs its own guard since it reads the raw SSE event payload.
+      if (!isPropertyAdmin(admin) || alert.propertyId === admin!.propertyId) {
+        setNewAlertBanner(`New panic alert from ${alert.resident?.name ?? "a resident"}${alert.message ? `: "${alert.message}"` : ""}`);
+        setTimeout(() => setNewAlertBanner(null), 8000);
+      }
     }
   });
 
