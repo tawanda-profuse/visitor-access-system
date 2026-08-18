@@ -40,7 +40,8 @@
         {
           "cameraPermission": "Ultra-Guard needs camera access to scan visitor Gate Pass QR codes."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "extra": {
       "apiBaseUrl": "https://ul-6112ec579e2f412f86edfa3d8f90d458.ecs.ap-southeast-1.on.aws"

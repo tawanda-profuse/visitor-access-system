@@ -1,7 +1,9 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { Alert, Share, Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import QRCode from "react-native-qrcode-svg";
+import ViewShot, { type ViewShotRef } from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
 import { ScreenContainer } from "@/components/ScreenContainer";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
@@ -26,6 +28,8 @@ export default function AccessCodeDetailScreen() {
 
   const [accessCode, setAccessCode] = useState<AccessCode | null>(null);
   const [revoking, setRevoking] = useState(false);
+  const [sharingImage, setSharingImage] = useState(false);
+  const qrShotRef = useRef<ViewShotRef>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -51,6 +55,27 @@ export default function AccessCodeDetailScreen() {
         `Valid until: ${new Date(accessCode.validUntil).toLocaleString()}\n\n` +
         `Enter this PIN at the gate keypad, or show the QR code, to be let in.`,
     });
+  };
+
+  const onShareQrImage = async () => {
+    if (!qrShotRef.current || sharingImage) return;
+    setSharingImage(true);
+    try {
+      const uri = await qrShotRef.current.capture();
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) {
+        Alert.alert("Sharing unavailable", "Your device can't share images directly.");
+        return;
+      }
+      await Sharing.shareAsync(uri, {
+        mimeType: "image/png",
+        dialogTitle: `Gate pass QR code for ${accessCode.visitorName}`,
+      });
+    } catch {
+      Alert.alert("Couldn't share QR code", "Please try again.");
+    } finally {
+      setSharingImage(false);
+    }
   };
 
   const onRevoke = () => {
@@ -79,9 +104,13 @@ export default function AccessCodeDetailScreen() {
     <ScreenContainer>
       <Card style={{ alignItems: "center", gap: 16, paddingVertical: 24 }}>
         <StatusBadge label={accessCode.status} tone={STATUS_TONE[accessCode.status]} />
-        <View style={{ backgroundColor: "#fff", padding: 16, borderRadius: 16 }}>
+        <ViewShot
+          ref={qrShotRef}
+          options={{ format: "png", quality: 1 }}
+          style={{ backgroundColor: "#fff", padding: 16, borderRadius: 16 }}
+        >
           <QRCode value={accessCode.qrToken} size={180} />
-        </View>
+        </ViewShot>
         <View style={{ alignItems: "center" }}>
           <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Gate PIN</Text>
           <Text style={{ color: colors.text, fontSize: 36, fontWeight: "800", letterSpacing: 4 }}>
@@ -102,6 +131,12 @@ export default function AccessCodeDetailScreen() {
       </Card>
 
       <Button label="Share with Visitor" onPress={onShare} />
+      <Button
+        label="Share QR Code Image"
+        variant="secondary"
+        onPress={onShareQrImage}
+        loading={sharingImage}
+      />
       {accessCode.status === "ACTIVE" && (
         <Button label="Revoke Pass" onPress={onRevoke} variant="danger" loading={revoking} />
       )}
