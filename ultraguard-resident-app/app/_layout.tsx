@@ -3,12 +3,16 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ThemeProvider, useAppTheme } from "@/theme/ThemeContext";
 import { AuthProvider } from "@/auth/AuthContext";
+import { AppLockProvider } from "@/auth/AppLockContext";
+import { LockScreen } from "@/components/LockScreen";
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <RootNavigator />
+        <AppLockProvider>
+          <RootNavigator />
+        </AppLockProvider>
       </AuthProvider>
     </ThemeProvider>
   );
@@ -35,6 +39,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="code/[id]" options={{ title: "Visitor Pass" }} />
       </Stack>
+      <LockScreen />
     </>
   );
 }

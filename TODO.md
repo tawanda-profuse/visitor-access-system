@@ -3,7 +3,6 @@
 - Re-deploy backend to digital ocean
 - Intercom Hardware integration
 - Setup email SMTP with Brevo (.env.example)
-- Is it possible to integrate the devices default authentication method for all subsequent attempts to access the mobile app (fingerprint, face ID, password, etc) after a user successfully signs in with their password?
 - This platform will be offered by the security company as a paid service. The super Admin should be able to delete or temporarily suspend a property admins account for whatever non-compliance reason. No need to integrate a payment gateway, just a way for the super admin to suspend a platform admins account via a simplified interface. Suspended platform admin accounts should not be able to login.
 - Implement a way, if possible to include a link saying "Download Mobile App" in the email to download the most recent APK for Android users when they receive their resident account invitation. This should use the most recent version of the application.
 - On the web portal From the Residents management page, there should be a way to toggle a full-screen view of the Map.
