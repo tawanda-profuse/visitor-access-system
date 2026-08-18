@@ -48,6 +48,16 @@ function button(link: string, label: string): string {
 }
 
 export async function residentInviteEmail(link: string) {
+  const apkUrl = process.env.ANDROID_APK_URL;
+  const appDownloadHtml = apkUrl
+    ? `<p style="margin-top:28px;padding-top:20px;border-top:1px solid #e5e5e5;">
+         <strong>Get the mobile app</strong><br/>
+         Create and manage visitor Gate Passes from your phone with the Ultra-Guard mobile app.
+       </p>
+       <p style="font-size:13px;color:#666;">Currently available for Android devices only. If you use an iPhone, you can still manage everything from a web browser.</p>
+       ${button(apkUrl, "Download Mobile App")}`
+    : "";
+
   return {
     subject: "Welcome to Ultra-Guard — Set Up Your Account",
     link,
@@ -55,7 +65,8 @@ export async function residentInviteEmail(link: string) {
       "Welcome to Ultra-Guard",
       `<p>An account has been created for you on the Ultra-Guard Visitor Access System.</p>
        <p>Set your password to finish setting up your account, then open the Ultra-Guard mobile app and sign in with your phone number or email to start creating visitor Gate Passes.</p>
-       ${button(link, "Set Your Password")}`,
+       ${button(link, "Set Your Password")}
+       ${appDownloadHtml}`,
     ),
   };
 }

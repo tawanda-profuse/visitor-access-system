@@ -500,6 +500,26 @@ button {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
 }
 
+/* Applied while the modal element is the browser's actual fullscreen element (see
+   Element.requestFullscreen() in ResidentLocationModal) — fills the monitor edge to
+   edge, so no rounded corners/margins like the regular centered modal. */
+.ug-modal-fullscreen {
+  max-width: 100vw;
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ug-modal-fullscreen .ug-modal-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .ug-modal-header {
   display: flex;
   align-items: center;

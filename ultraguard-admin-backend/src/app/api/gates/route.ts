@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 // GET /api/gates — Admin Portal: gate/intercom device inventory & connectivity status.
 export async function GET(req: NextRequest) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req);
+    const { propertyId } = await requirePropertyScopedAdmin(req);
     const gates = await prisma.gate.findMany({
       where: propertyId ? { propertyId } : undefined,
       include: { property: true },
@@ -39,7 +39,7 @@ const createSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req, ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"]);
+    const { propertyId } = await requirePropertyScopedAdmin(req, ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"]);
     const body = createSchema.parse(await req.json());
 
     // A Property Admin can only ever provision gates for their own property — ignore

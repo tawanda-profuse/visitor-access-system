@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { PaginationBar } from "@/components/PaginationBar";
 import { ResidentLocationModal } from "@/components/ResidentLocationModal";
 import { useAuth } from "@/lib/auth-context";
-import { isPropertyAdmin } from "@/lib/roles";
+import { isPropertyAdmin, isSuperAdmin } from "@/lib/roles";
 import type { Resident, Property, Pagination } from "@/lib/types";
 import { ResidentFormModal, flattenUnitOptions } from "./ResidentFormModal";
 
@@ -21,6 +21,7 @@ export default function ResidentsPage() {
   const [page, setPage] = useState(1);
   const [properties, setProperties] = useState<Property[]>([]);
   const [search, setSearch] = useState("");
+  const [propertyFilter, setPropertyFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [modalMode, setModalMode] = useState<"add" | "edit" | null>(null);
   const [editingResident, setEditingResident] = useState<Resident | null>(null);
@@ -30,7 +31,12 @@ export default function ResidentsPage() {
   async function loadResidents(searchTerm: string, pageNum: number) {
     try {
       const data = await apiFetch<{ residents: Resident[]; pagination: Pagination }>("/api/residents", {
-        params: { search: searchTerm || undefined, page: String(pageNum), pageSize: String(PAGE_SIZE) },
+        params: {
+          search: searchTerm || undefined,
+          page: String(pageNum),
+          pageSize: String(PAGE_SIZE),
+          propertyId: isSuperAdmin(admin) ? propertyFilter || undefined : undefined,
+        },
       });
       setResidents(data.residents);
       setPagination(data.pagination);
@@ -51,14 +57,14 @@ export default function ResidentsPage() {
     const timeout = setTimeout(() => loadResidents(search, page), 300);
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, page]);
+  }, [search, page, propertyFilter]);
 
-  // Reset to page 1 whenever the search term changes so results aren't stranded on an
-  // out-of-range page from a previous, larger result set.
+  // Reset to page 1 whenever the search term or property filter changes so results
+  // aren't stranded on an out-of-range page from a previous, larger result set.
   useEffect(() => {
     setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [search, propertyFilter]);
 
   async function toggleSuspend(resident: Resident) {
     const nextStatus = resident.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED";
@@ -120,6 +126,21 @@ export default function ResidentsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        {isSuperAdmin(admin) ? (
+          <select
+            className="ug-input"
+            style={{ maxWidth: 240 }}
+            value={propertyFilter}
+            onChange={(e) => setPropertyFilter(e.target.value)}
+          >
+            <option value="">All Properties</option>
+            {properties.map((property) => (
+              <option key={property.id} value={property.id}>
+                {property.name}
+              </option>
+            ))}
+          </select>
+        ) : null}
       </div>
 
       <div className="ug-card">

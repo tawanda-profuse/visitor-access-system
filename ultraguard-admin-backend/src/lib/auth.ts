@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { NextRequest } from "next/server";
 import { ApiError } from "./api-response";
+import { prisma } from "./prisma";
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-me";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "7d";
@@ -41,10 +42,17 @@ export function requireResident(req: NextRequest): { residentId: string } {
   return { residentId: payload.residentId };
 }
 
-export function requireAdmin(
+/**
+ * Verifies the bearer JWT and, on top of that, re-checks the admin's live status in the
+ * database on every call. This is deliberately a DB round-trip per request (not just a
+ * JWT decode) so a Super Admin suspending a Property Admin takes effect immediately —
+ * on their very next request — rather than waiting for their JWT to expire (up to
+ * JWT_EXPIRES_IN, 7 days by default) or for them to reload the portal.
+ */
+export async function requireAdmin(
   req: NextRequest,
   allowedRoles?: string[],
-): { adminId: string; role: string; propertyId: string | null; onboarded: boolean } {
+): Promise<{ adminId: string; role: string; propertyId: string | null; onboarded: boolean }> {
   const payload = verifyToken(getBearerToken(req));
   if (payload.subjectType !== "admin") {
     throw new ApiError("Admin authentication required", 403);
@@ -52,6 +60,15 @@ export function requireAdmin(
   if (allowedRoles && !allowedRoles.includes(payload.role)) {
     throw new ApiError("Insufficient permissions", 403);
   }
+
+  const admin = await prisma.admin.findUnique({
+    where: { id: payload.adminId },
+    select: { status: true },
+  });
+  if (!admin || admin.status === "SUSPENDED") {
+    throw new ApiError("This account has been suspended. Contact your Ultra-Guard administrator.", 403);
+  }
+
   return {
     adminId: payload.adminId,
     role: payload.role,
@@ -66,11 +83,11 @@ export function requireAdmin(
  * onboarding wizard yet (they have no property to scope to). SUPER_ADMIN/OPERATOR
  * get back propertyId: null, meaning "unscoped — see everything".
  */
-export function requirePropertyScopedAdmin(
+export async function requirePropertyScopedAdmin(
   req: NextRequest,
   allowedRoles: string[] = ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"],
-): { adminId: string; role: string; propertyId: string | null } {
-  const auth = requireAdmin(req, allowedRoles);
+): Promise<{ adminId: string; role: string; propertyId: string | null }> {
+  const auth = await requireAdmin(req, allowedRoles);
   if (auth.role === "PROPERTY_ADMIN") {
     if (!auth.onboarded || !auth.propertyId) {
       throw new ApiError("Please complete onboarding before continuing", 409);

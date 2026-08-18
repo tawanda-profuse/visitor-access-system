@@ -13,7 +13,7 @@ type NominatimResult = { lat: string; lon: string; display_name: string };
 // reliably set.
 export async function GET(req: NextRequest) {
   try {
-    requireAdmin(req);
+    await requireAdmin(req);
     const query = req.nextUrl.searchParams.get("query")?.trim();
     if (!query) throw new ApiError("Missing query", 400);
 

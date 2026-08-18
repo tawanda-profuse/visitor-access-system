@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 // the now-set propertyId/onboarded flag so the portal doesn't need to force a re-login.
 export async function POST(req: NextRequest) {
   try {
-    const auth = requireAdmin(req, ["PROPERTY_ADMIN"]);
+    const auth = await requireAdmin(req, ["PROPERTY_ADMIN"]);
     if (auth.onboarded) throw new ApiError("Onboarding already completed", 409);
 
     const admin = await prisma.admin.findUnique({ where: { id: auth.adminId } });

@@ -23,6 +23,9 @@ export async function GET(req: NextRequest) {
 
     const admin = await prisma.admin.findUnique({ where: { id: payload.adminId } });
     if (!admin) throw new ApiError("Admin not found", 404);
+    if (admin.status === "SUSPENDED") {
+      throw new ApiError("This account has been suspended. Contact your Ultra-Guard administrator.", 403);
+    }
     return ok({
       subjectType: "admin",
       admin: {

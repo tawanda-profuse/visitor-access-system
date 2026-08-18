@@ -20,6 +20,9 @@ export async function POST(req: NextRequest) {
     if (!admin) {
       throw new ApiError("Invalid email or password", 401);
     }
+    if (admin.status === "SUSPENDED") {
+      throw new ApiError("This account has been suspended. Contact your Ultra-Guard administrator.", 403);
+    }
     if (!admin.passwordHash) {
       throw new ApiError("Please check your email to set your password before signing in", 403);
     }

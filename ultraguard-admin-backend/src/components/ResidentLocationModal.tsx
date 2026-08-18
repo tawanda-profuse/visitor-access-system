@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Modal } from "./Modal";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
@@ -30,6 +30,36 @@ export function ResidentLocationModal({
   const [error, setError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // The browser exits fullscreen on its own when the user presses Escape (or uses
+  // browser chrome), without going through our toggle button — this keeps `isFullscreen`
+  // in sync with reality either way, and only this element's fullscreen state, not any
+  // other component that might independently be fullscreen.
+  useEffect(() => {
+    function onFullscreenChange() {
+      setIsFullscreen(document.fullscreenElement === modalRef.current);
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      if (document.fullscreenElement === modalRef.current) document.exitFullscreen().catch(() => {});
+    };
+  }, []);
+
+  async function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await modalRef.current?.requestFullscreen();
+    }
+  }
+
+  async function handleClose() {
+    if (document.fullscreenElement === modalRef.current) await document.exitFullscreen();
+    onClose();
+  }
 
   async function locateFromAddress() {
     if (!resident.address) {
@@ -68,20 +98,35 @@ export function ResidentLocationModal({
   }
 
   return (
-    <Modal title={`${resident.name} — Home Location`} onClose={onClose}>
+    <Modal ref={modalRef} title={`${resident.name} — Home Location`} onClose={handleClose} fullscreen={isFullscreen}>
       {error ? <div className="ug-banner ug-banner-danger">{error}</div> : null}
-      <p style={{ color: "var(--ug-text-secondary)", fontSize: "0.85rem", marginTop: 0 }}>
-        {resident.address ?? "No address on file."} Click the map or drag the pin to set the exact spot.
-      </p>
-      <div style={{ height: 320, borderRadius: 8, overflow: "hidden", marginBottom: "1rem" }}>
-        <ResidentLocationMap position={position} onChange={setPosition} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.6rem" }}>
+        <p style={{ color: "var(--ug-text-secondary)", fontSize: "0.85rem", marginTop: 0, flex: 1 }}>
+          {resident.address ?? "No address on file."} Click the map or drag the pin to set the exact spot.
+          {isFullscreen ? " Press Esc to exit full screen." : ""}
+        </p>
+        <button type="button" className="ug-btn ug-btn-secondary ug-btn-sm" onClick={toggleFullscreen}>
+          {isFullscreen ? "Exit Full Screen" : "Full Screen"}
+        </button>
+      </div>
+      <div
+        style={{
+          height: isFullscreen ? "100%" : 320,
+          flex: isFullscreen ? 1 : undefined,
+          borderRadius: 8,
+          overflow: "hidden",
+          marginBottom: "1rem",
+          minHeight: isFullscreen ? 0 : undefined,
+        }}
+      >
+        <ResidentLocationMap position={position} onChange={setPosition} fullscreen={isFullscreen} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem", flexWrap: "wrap" }}>
         <button type="button" className="ug-btn ug-btn-secondary" onClick={locateFromAddress} disabled={locating}>
           {locating ? "Locating…" : "Locate from Address"}
         </button>
         <div style={{ display: "flex", gap: "0.6rem" }}>
-          <button type="button" className="ug-btn ug-btn-secondary" onClick={onClose}>
+          <button type="button" className="ug-btn ug-btn-secondary" onClick={handleClose}>
             Cancel
           </button>
           <button type="button" className="ug-btn ug-btn-primary" onClick={save} disabled={saving || !position}>

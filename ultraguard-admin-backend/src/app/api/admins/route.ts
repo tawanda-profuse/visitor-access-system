@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 // GET /api/admins — Super Admin: list all admin accounts (property admins + operators).
 export async function GET(req: NextRequest) {
   try {
-    requireAdmin(req, ["SUPER_ADMIN"]);
+    await requireAdmin(req, ["SUPER_ADMIN"]);
     const admins = await prisma.admin.findMany({
       include: { property: true },
       orderBy: { createdAt: "desc" },
@@ -33,7 +33,7 @@ const createSchema = z.object({
 // set here — an invite email with a set-password link is sent immediately.
 export async function POST(req: NextRequest) {
   try {
-    requireAdmin(req, ["SUPER_ADMIN"]);
+    await requireAdmin(req, ["SUPER_ADMIN"]);
     const body = createSchema.parse(await req.json());
 
     const admin = await prisma.admin.create({

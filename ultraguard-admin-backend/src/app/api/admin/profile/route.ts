@@ -23,7 +23,7 @@ const patchSchema = z
 // param, so an admin can never use this to edit someone else's profile.
 export async function PATCH(req: NextRequest) {
   try {
-    const { adminId } = requireAdmin(req);
+    const { adminId } = await requireAdmin(req);
     const body = patchSchema.parse(await req.json());
 
     const admin = await prisma.admin.findUnique({ where: { id: adminId } });

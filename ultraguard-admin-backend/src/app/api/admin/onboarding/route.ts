@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 // GET /api/admin/onboarding — resume state for the Property Admin onboarding wizard.
 export async function GET(req: NextRequest) {
   try {
-    const auth = requireAdmin(req, ["PROPERTY_ADMIN"]);
+    const auth = await requireAdmin(req, ["PROPERTY_ADMIN"]);
     const admin = await prisma.admin.findUnique({
       where: { id: auth.adminId },
       include: { property: { include: { gates: true } } },
@@ -40,7 +40,7 @@ const putSchema = z.object({
 // display name). Idempotent: safe to call repeatedly before POST .../complete.
 export async function PUT(req: NextRequest) {
   try {
-    const auth = requireAdmin(req, ["PROPERTY_ADMIN"]);
+    const auth = await requireAdmin(req, ["PROPERTY_ADMIN"]);
     if (auth.onboarded) throw new ApiError("Onboarding already completed", 409);
 
     const body = putSchema.parse(await req.json());

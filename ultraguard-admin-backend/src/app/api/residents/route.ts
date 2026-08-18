@@ -26,15 +26,19 @@ export const runtime = "nodejs";
 // standalone/private residents).
 export async function GET(req: NextRequest) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req);
+    const { propertyId } = await requirePropertyScopedAdmin(req);
     const search = req.nextUrl.searchParams.get("search") ?? undefined;
     const unassignedOnly = req.nextUrl.searchParams.get("unassigned") === "true";
+    // A Property Admin is already scoped to their own property; the `propertyId` query
+    // param only has an effect for unscoped callers (Super Admin/Operator), letting them
+    // filter down to one property without ever overriding a Property Admin's own scope.
+    const filterPropertyId = propertyId ?? req.nextUrl.searchParams.get("propertyId") ?? undefined;
 
     const where = {
       ...(unassignedOnly
-        ? { units: { none: {} }, ...(propertyId ? { lastPropertyId: propertyId } : {}) }
-        : propertyId
-          ? { units: { some: { unit: { propertyId } } } }
+        ? { units: { none: {} }, ...(filterPropertyId ? { lastPropertyId: filterPropertyId } : {}) }
+        : filterPropertyId
+          ? { units: { some: { unit: { propertyId: filterPropertyId } } } }
           : {}),
       ...(search
         ? {
@@ -53,7 +57,7 @@ export async function GET(req: NextRequest) {
         where,
         include: {
           units: {
-            where: propertyId ? { unit: { propertyId } } : undefined,
+            where: filterPropertyId ? { unit: { propertyId: filterPropertyId } } : undefined,
             include: { unit: { include: { property: true } } },
           },
         },
@@ -89,7 +93,7 @@ const createSchema = z.object({
 // resident with no unitId creates a standalone resident (not linked to any property).
 export async function POST(req: NextRequest) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req, ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"]);
+    const { propertyId } = await requirePropertyScopedAdmin(req, ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"]);
     const body = createSchema.parse(await req.json());
 
     if (propertyId && !body.unitId) {

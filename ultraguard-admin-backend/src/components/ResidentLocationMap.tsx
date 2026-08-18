@@ -36,14 +36,29 @@ function Recenter({ position }: { position: LatLng | null }) {
   return null;
 }
 
+// Leaflet caches its container size and doesn't notice when something outside its own
+// control (e.g. toggling full-screen) resizes that container — tiles stay clipped to the
+// old size until nudged. `resizeTrigger` is any value that changes exactly when a resize
+// happens (e.g. the fullscreen boolean).
+function InvalidateOnResize({ resizeTrigger }: { resizeTrigger: unknown }) {
+  const map = useMap();
+  useEffect(() => {
+    const id = setTimeout(() => map.invalidateSize(), 0);
+    return () => clearTimeout(id);
+  }, [resizeTrigger]);
+  return null;
+}
+
 export default function ResidentLocationMap({
   position,
   onChange,
   readOnly,
+  fullscreen,
 }: {
   position: LatLng | null;
   onChange?: (pos: LatLng) => void;
   readOnly?: boolean;
+  fullscreen?: boolean;
 }) {
   const center = position ?? DEFAULT_CENTER;
 
@@ -54,6 +69,7 @@ export default function ResidentLocationMap({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <Recenter position={position} />
+      <InvalidateOnResize resizeTrigger={fullscreen} />
       {!readOnly && onChange ? <ClickHandler onChange={onChange} /> : null}
       {position ? (
         <Marker

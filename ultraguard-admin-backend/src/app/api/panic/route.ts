@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     if (payload.subjectType === "resident") {
       where = { residentId: payload.residentId };
     } else {
-      const { propertyId } = requirePropertyScopedAdmin(req);
+      const { propertyId } = await requirePropertyScopedAdmin(req);
       where = propertyId ? { propertyId } : {};
     }
 

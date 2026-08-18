@@ -15,7 +15,7 @@ const patchSchema = z.object({
 // their own (enforced, not just hidden client-side).
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req);
+    const { propertyId } = await requirePropertyScopedAdmin(req);
     if (propertyId && propertyId !== params.id) {
       throw new ApiError("Property not found", 404);
     }

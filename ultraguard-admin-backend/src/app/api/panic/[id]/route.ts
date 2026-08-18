@@ -14,7 +14,7 @@ const patchSchema = z.object({
 // PATCH /api/panic/:id — Admin/guard desk: acknowledge or resolve an emergency alert.
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { adminId, propertyId } = requirePropertyScopedAdmin(req);
+    const { adminId, propertyId } = await requirePropertyScopedAdmin(req);
     const body = patchSchema.parse(await req.json());
 
     const existing = await prisma.panicAlert.findUnique({ where: { id: params.id } });

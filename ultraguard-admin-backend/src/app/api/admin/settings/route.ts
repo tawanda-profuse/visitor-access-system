@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 // email shown to residents who are denied mobile app access).
 export async function GET(req: NextRequest) {
   try {
-    requireAdmin(req);
+    await requireAdmin(req);
     const supportEmail = await getSupportEmail();
     return ok({ supportEmail });
   } catch (error) {
@@ -26,7 +26,7 @@ const patchSchema = z.object({
 // Only the Super Admin may change this.
 export async function PATCH(req: NextRequest) {
   try {
-    requireAdmin(req, ["SUPER_ADMIN"]);
+    await requireAdmin(req, ["SUPER_ADMIN"]);
     const body = patchSchema.parse(await req.json());
     const supportEmail = await setSupportEmail(body.supportEmail);
     return ok({ supportEmail });

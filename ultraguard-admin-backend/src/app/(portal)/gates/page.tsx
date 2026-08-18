@@ -38,6 +38,16 @@ export default function GatesPage() {
   // Gate status/last-seen updates (heartbeats, validations) refresh the connectivity table live.
   useLiveEvents(["gate"], () => load());
 
+  async function removeGate(gate: Gate) {
+    if (!confirm(`Permanently remove "${gate.name}"? This cannot be undone.`)) return;
+    try {
+      await apiFetch(`/api/gates/${gate.id}`, { method: "DELETE" });
+      load();
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Failed to remove gate");
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -87,9 +97,12 @@ export default function GatesPage() {
                   </td>
                   <td>{gate.lastSeenAt ? new Date(gate.lastSeenAt).toLocaleString() : "Never"}</td>
                   <td>
-                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.4rem" }}>
                       <button className="ug-btn ug-btn-secondary ug-btn-sm" onClick={() => setEditingGate(gate)}>
                         Edit
+                      </button>
+                      <button className="ug-btn ug-btn-danger-outline ug-btn-sm" onClick={() => removeGate(gate)}>
+                        Delete
                       </button>
                     </div>
                   </td>

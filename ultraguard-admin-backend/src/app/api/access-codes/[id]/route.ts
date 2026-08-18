@@ -16,7 +16,7 @@ async function loadOwnedAccessCode(id: string, payload: ReturnType<typeof verify
     throw new ApiError("Not authorized to view this access code", 403);
   }
   if (payload.subjectType === "admin") {
-    const { propertyId } = requirePropertyScopedAdmin(req);
+    const { propertyId } = await requirePropertyScopedAdmin(req);
     if (propertyId && !accessCode.resident.units.some((ru) => ru.unit.propertyId === propertyId)) {
       throw new ApiError("Access code not found", 404);
     }

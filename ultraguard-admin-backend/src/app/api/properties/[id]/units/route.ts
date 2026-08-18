@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 // GET /api/properties/:id/units — Admin Portal: list units within a property.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req);
+    const { propertyId } = await requirePropertyScopedAdmin(req);
     if (propertyId && propertyId !== params.id) {
       throw new ApiError("Property not found", 404);
     }
@@ -29,7 +29,7 @@ const createSchema = z.object({ label: z.string().min(1) });
 // POST /api/properties/:id/units — Admin Portal: add a unit/house to a property.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req, ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"]);
+    const { propertyId } = await requirePropertyScopedAdmin(req, ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"]);
     if (propertyId && propertyId !== params.id) {
       throw new ApiError("Property not found", 404);
     }

@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 // Property Admins only see counts/activity relevant to their own property.
 export async function GET(req: NextRequest) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req);
+    const { propertyId } = await requirePropertyScopedAdmin(req);
 
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 

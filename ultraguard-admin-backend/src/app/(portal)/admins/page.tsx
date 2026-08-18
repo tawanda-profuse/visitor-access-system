@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
+import { StatusBadge } from "@/components/StatusBadge";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { isSuperAdmin } from "@/lib/roles";
@@ -12,6 +13,7 @@ type AdminListItem = {
   name: string;
   email: string;
   role: "SUPER_ADMIN" | "OPERATOR" | "PROPERTY_ADMIN";
+  status: "ACTIVE" | "SUSPENDED";
   propertyId: string | null;
   onboardingCompletedAt: string | null;
   createdAt: string;
@@ -54,6 +56,26 @@ function AdminsPageContent() {
     load();
   }, []);
 
+  async function toggleStatus(item: AdminListItem) {
+    const nextStatus = item.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED";
+    try {
+      await apiFetch(`/api/admins/${item.id}`, { method: "PATCH", body: { status: nextStatus } });
+      load();
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Failed to update admin");
+    }
+  }
+
+  async function removeAdmin(item: AdminListItem) {
+    if (!confirm(`Permanently remove ${item.name}? This cannot be undone.`)) return;
+    try {
+      await apiFetch(`/api/admins/${item.id}`, { method: "DELETE" });
+      load();
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Failed to remove admin");
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -80,19 +102,21 @@ function AdminsPageContent() {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Property</th>
+                <th>Status</th>
                 <th>Created</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {!admins ? (
                 <tr>
-                  <td colSpan={5} className="ug-table-empty">
+                  <td colSpan={7} className="ug-table-empty">
                     Loading…
                   </td>
                 </tr>
               ) : admins.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="ug-table-empty">
+                  <td colSpan={7} className="ug-table-empty">
                     No admins yet.
                   </td>
                 </tr>
@@ -106,7 +130,25 @@ function AdminsPageContent() {
                       {a.property?.name ??
                         (a.role === "PROPERTY_ADMIN" ? "— pending onboarding —" : "—")}
                     </td>
+                    <td>
+                      <StatusBadge status={a.status} />
+                    </td>
                     <td>{new Date(a.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      {a.role !== "SUPER_ADMIN" ? (
+                        <div style={{ display: "flex", gap: "0.4rem", justifyContent: "flex-end" }}>
+                          <button className="ug-btn ug-btn-secondary ug-btn-sm" onClick={() => toggleStatus(a)}>
+                            {a.status === "SUSPENDED" ? "Reactivate" : "Suspend"}
+                          </button>
+                          <button
+                            className="ug-btn ug-btn-danger-outline ug-btn-sm"
+                            onClick={() => removeAdmin(a)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : null}
+                    </td>
                   </tr>
                 ))
               )}

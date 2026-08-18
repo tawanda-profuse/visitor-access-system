@@ -19,7 +19,7 @@ const createSchema = z.object({
 // it first (DELETE .../residents/:residentId) before being added elsewhere.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { role, propertyId } = requirePropertyScopedAdmin(req);
+    const { role, propertyId } = await requirePropertyScopedAdmin(req);
     if (propertyId && propertyId !== params.id) {
       throw new ApiError("Property not found", 404);
     }

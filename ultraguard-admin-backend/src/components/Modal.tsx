@@ -1,19 +1,20 @@
 "use client";
 
-export function Modal({
-  title,
-  onClose,
-  children,
-  footer,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
-}) {
+import { forwardRef } from "react";
+
+export const Modal = forwardRef<
+  HTMLDivElement,
+  {
+    title: string;
+    onClose: () => void;
+    children: React.ReactNode;
+    footer?: React.ReactNode;
+    fullscreen?: boolean;
+  }
+>(function Modal({ title, onClose, children, footer, fullscreen }, ref) {
   return (
     <div className="ug-modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="ug-modal">
+      <div ref={ref} className={`ug-modal${fullscreen ? " ug-modal-fullscreen" : ""}`}>
         <div className="ug-modal-header">
           <h2 className="ug-modal-title">{title}</h2>
           <button className="ug-icon-btn" onClick={onClose} aria-label="Close">
@@ -25,4 +26,4 @@ export function Modal({
       </div>
     </div>
   );
-}
+});

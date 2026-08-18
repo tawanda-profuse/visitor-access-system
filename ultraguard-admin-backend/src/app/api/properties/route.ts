@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 // ever see their own property (scoped by the API, not just hidden client-side).
 export async function GET(req: NextRequest) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req);
+    const { propertyId } = await requirePropertyScopedAdmin(req);
     const properties = await prisma.property.findMany({
       where: propertyId ? { id: propertyId } : undefined,
       include: {
@@ -33,7 +33,7 @@ const createSchema = z.object({
 // POST /api/properties — Admin Portal: onboard a new managed property/estate.
 export async function POST(req: NextRequest) {
   try {
-    requireAdmin(req, ["SUPER_ADMIN", "OPERATOR"]);
+    await requireAdmin(req, ["SUPER_ADMIN", "OPERATOR"]);
     const body = createSchema.parse(await req.json());
     const property = await prisma.property.create({ data: body });
     return ok({ property }, 201);

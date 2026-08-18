@@ -69,6 +69,7 @@ model Admin {
   email                 String    @unique
   passwordHash          String? // null until the admin sets their password via an invite/reset link
   role                  String    @default("OPERATOR") // SUPER_ADMIN | OPERATOR | PROPERTY_ADMIN
+  status                String    @default("ACTIVE") // ACTIVE | SUSPENDED — a suspended admin cannot log in
   propertyId            String? // set for PROPERTY_ADMIN once onboarding completes; null for SUPER_ADMIN/OPERATOR
   property              Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
   onboardingCompletedAt DateTime? // drives whether a PROPERTY_ADMIN must complete the onboarding wizard

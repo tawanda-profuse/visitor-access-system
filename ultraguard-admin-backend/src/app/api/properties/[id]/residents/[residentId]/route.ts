@@ -13,7 +13,7 @@ export async function DELETE(
   { params }: { params: { id: string; residentId: string } },
 ) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req);
+    const { propertyId } = await requirePropertyScopedAdmin(req);
     if (propertyId && propertyId !== params.id) {
       throw new ApiError("Property not found", 404);
     }

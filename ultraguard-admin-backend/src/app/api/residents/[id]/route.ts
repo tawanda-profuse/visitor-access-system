@@ -24,7 +24,7 @@ async function loadScopedResident(id: string, propertyId: string | null) {
 // GET /api/residents/:id — Admin: view a single resident profile.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req);
+    const { propertyId } = await requirePropertyScopedAdmin(req);
     const resident = await loadScopedResident(params.id, propertyId);
     return ok({ resident });
   } catch (error) {
@@ -48,7 +48,7 @@ const patchSchema = z.object({
 // PATCH /api/residents/:id — Admin: edit profile / suspend / remove (soft delete via status).
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { propertyId } = requirePropertyScopedAdmin(req, ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"]);
+    const { propertyId } = await requirePropertyScopedAdmin(req, ["SUPER_ADMIN", "OPERATOR", "PROPERTY_ADMIN"]);
     const existing = await loadScopedResident(params.id, propertyId);
 
     const parsed = patchSchema.parse(await req.json());
@@ -84,7 +84,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 // DELETE /api/residents/:id — Super Admin: permanently remove a resident record.
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    requireAdmin(req, ["SUPER_ADMIN"]);
+    await requireAdmin(req, ["SUPER_ADMIN"]);
     await prisma.resident.delete({ where: { id: params.id } });
     return ok({ message: "Resident removed" });
   } catch (error) {
