@@ -1,0 +1,166 @@
+/* Resident web portal — layout/structural classes only. Buttons, inputs, cards, badges,
+   banners, and modals are all reused directly from globals.css (.ug-btn, .ug-input,
+   .ug-card, .ug-badge-*, .ug-banner-*, .ug-modal*) to stay consistent with the rest of
+   the app; only genuinely new structure gets a class here, prefixed ug-res- to avoid
+   ever colliding with the admin portal's ug-* classes. */
+
+.ug-res-login-shell {
+  min-height: 100vh;
+  display: flex;
+}
+
+.ug-res-login-form-panel {
+  flex: 0 0 40%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--ug-bg);
+}
+
+.ug-res-login-banner-panel {
+  flex: 0 0 60%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--ug-red) 0%, var(--ug-red-pressed) 100%);
+  color: var(--ug-white);
+  text-align: center;
+}
+
+.ug-res-login-banner-tagline {
+  font-size: 1.1rem;
+  max-width: 420px;
+  opacity: 0.92;
+  line-height: 1.5;
+}
+
+.ug-res-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.5rem;
+  background: var(--ug-black);
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.ug-res-topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.ug-res-nav-link {
+  color: #d8d8d8;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+}
+
+.ug-res-nav-link:hover {
+  background: #1c1c1c;
+  color: var(--ug-white);
+}
+
+.ug-res-nav-link-active {
+  background: var(--ug-red);
+  color: var(--ug-white);
+}
+
+.ug-res-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ug-res-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.6rem;
+  color: var(--ug-text);
+}
+
+.ug-res-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ug-res-chip {
+  border: 1px solid var(--ug-border);
+  background: var(--ug-surface);
+  color: var(--ug-text);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ug-res-chip-active {
+  background: var(--ug-red);
+  border-color: var(--ug-red);
+  color: var(--ug-white);
+}
+
+.ug-res-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--ug-border);
+}
+
+.ug-res-list-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.ug-res-qr-box {
+  display: flex;
+  justify-content: center;
+  padding: 1.25rem;
+  background: var(--ug-white);
+  border-radius: var(--ug-radius);
+}
+
+@media (max-width: 768px) {
+  .ug-res-login-shell {
+    flex-direction: column;
+  }
+
+  .ug-res-login-banner-panel {
+    flex: 0 0 auto;
+    min-height: 220px;
+    padding: 1.5rem;
+  }
+
+  .ug-res-login-form-panel {
+    flex: 1 1 auto;
+    padding: 1.5rem;
+  }
+
+  .ug-res-topbar {
+    padding: 0.75rem 1rem;
+  }
+
+  .ug-res-page {
+    padding: 1rem;
+  }
+}
