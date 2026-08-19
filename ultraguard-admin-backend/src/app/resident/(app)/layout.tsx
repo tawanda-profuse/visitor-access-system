@@ -4,13 +4,15 @@ import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { LayoutDashboard, UserPlus, History, ScanLine, Settings, LogOut, type LucideIcon } from "lucide-react";
 import { useResidentAuth } from "@/lib/resident-auth-context";
 
-const NAV_ITEMS = [
-  { href: "/resident/dashboard", label: "Dashboard" },
-  { href: "/resident/invite", label: "Invite" },
-  { href: "/resident/history", label: "History" },
-  { href: "/resident/settings", label: "Settings" },
+const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/resident/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/resident/invite", label: "Invite", icon: UserPlus },
+  { href: "/resident/history", label: "History", icon: History },
+  { href: "/resident/guard", label: "Guard", icon: ScanLine },
+  { href: "/resident/settings", label: "Settings", icon: Settings },
 ];
 
 export default function ResidentAppLayout({ children }: { children: React.ReactNode }) {
@@ -31,25 +33,48 @@ export default function ResidentAppLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <>
-      <header className="ug-res-topbar">
-        <Image src="/ultraguard-logo.png" alt="Ultra-Guard" width={140} height={34} style={{ height: "auto" }} priority />
-        <nav className="ug-res-topbar-nav">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`ug-res-nav-link ${pathname === item.href ? "ug-res-nav-link-active" : ""}`}
-            >
-              {item.label}
-            </Link>
-          ))}
+    <div className="ug-res-shell">
+      <aside className="ug-res-sidebar">
+        <div className="ug-res-sidebar-logo">
+          <Image src="/ultraguard-logo.png" alt="Ultra-Guard" width={160} height={39} style={{ height: "auto", width: "100%" }} priority />
+        </div>
+
+        <nav className="ug-res-sidebar-nav">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === item.href;
+            return (
+              <Link key={item.href} href={item.href} className={`ug-res-nav-link ${active ? "ug-res-nav-link-active" : ""}`}>
+                <Icon size={18} strokeWidth={2} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="ug-res-sidebar-footer">
+          <div style={{ color: "#fff", fontSize: "0.85rem", fontWeight: 600 }}>{resident.name}</div>
           <button className="ug-btn ug-btn-secondary ug-btn-sm" onClick={logout}>
+            <LogOut size={16} style={{ marginRight: 6 }} />
             Log Out
           </button>
-        </nav>
-      </header>
-      <main>{children}</main>
-    </>
+        </div>
+      </aside>
+
+      <div className="ug-res-main">{children}</div>
+
+      <nav className="ug-res-bottom-nav">
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href;
+          return (
+            <Link key={item.href} href={item.href} className={`ug-res-bottom-nav-link ${active ? "ug-res-bottom-nav-link-active" : ""}`}>
+              <Icon size={20} strokeWidth={2} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }

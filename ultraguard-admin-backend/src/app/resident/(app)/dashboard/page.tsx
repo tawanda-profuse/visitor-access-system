@@ -59,6 +59,15 @@ export default function ResidentDashboardPage() {
         </button>
       </Link>
 
+      <div className="ug-card">
+        <p style={{ margin: "0 0 0.75rem", fontSize: "0.9rem" }}>Covering the gate? Verify a visitor's pass here.</p>
+        <Link href="/resident/guard">
+          <button className="ug-btn ug-btn-secondary" style={{ width: "100%" }}>
+            🛡️ Guard the Gate
+          </button>
+        </Link>
+      </div>
+
       <div className="ug-card" style={{ borderColor: "var(--ug-danger)" }}>
         <p style={{ margin: "0 0 0.75rem", fontSize: "0.9rem" }}>
           Instantly alert the security guard desk or monitoring centre.

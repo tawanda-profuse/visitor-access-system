@@ -61,3 +61,28 @@ export type PanicAlert = {
   createdAt: string;
   resolvedAt: string | null;
 };
+
+// --- Security Guard mode (endpoints are unauthenticated; used here from within an
+// authenticated resident session) ---
+
+export type Gate = {
+  id: string;
+  name: string;
+  propertyId: string;
+  propertyName: string;
+  propertyAddress: string;
+};
+
+export type GuardResultCode = "NOT_FOUND" | "WRONG_LOCATION" | "REVOKED" | "USED" | "EXPIRED" | "DENIED" | "SUCCESS";
+
+export type GuardVisit = {
+  visitorName: string;
+  gate: { id: string; name: string };
+  property: { id: string; name: string; address: string };
+};
+
+export type GuardVerifyResult = {
+  resultCode: GuardResultCode;
+  message: string;
+  visit?: GuardVisit;
+};

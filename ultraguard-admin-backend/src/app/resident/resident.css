@@ -39,33 +39,51 @@
   line-height: 1.5;
 }
 
-.ug-res-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+.ug-res-shell {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  padding: 0.85rem 1.5rem;
-  background: var(--ug-black);
-  border-bottom: 1px solid #2a2a2a;
+  min-height: 100vh;
 }
 
-.ug-res-topbar-nav {
+.ug-res-sidebar {
+  flex: 0 0 220px;
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  background: var(--ug-black);
+  padding: 1.25rem 1rem;
+  gap: 1.5rem;
+}
+
+.ug-res-sidebar-logo {
+  background: var(--ug-white);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+}
+
+.ug-res-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+}
+
+.ug-res-sidebar-footer {
+  border-top: 1px solid #2a2a2a;
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .ug-res-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   color: #d8d8d8;
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 600;
-  padding: 0.5rem 0.75rem;
+  padding: 0.6rem 0.75rem;
   border-radius: 8px;
 }
 
@@ -77,6 +95,15 @@
 .ug-res-nav-link-active {
   background: var(--ug-red);
   color: var(--ug-white);
+}
+
+.ug-res-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ug-res-bottom-nav {
+  display: none;
 }
 
 .ug-res-page {
@@ -156,8 +183,42 @@
     padding: 1.5rem;
   }
 
-  .ug-res-topbar {
-    padding: 0.75rem 1rem;
+  .ug-res-sidebar {
+    display: none;
+  }
+
+  .ug-res-main {
+    padding-bottom: 4.5rem; /* clear the fixed bottom nav */
+  }
+
+  .ug-res-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: var(--ug-black);
+    border-top: 1px solid #2a2a2a;
+    padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom));
+  }
+
+  .ug-res-bottom-nav-link {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    color: #9a9a9a;
+    text-decoration: none;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.35rem 0;
+    border-radius: 8px;
+  }
+
+  .ug-res-bottom-nav-link-active {
+    color: var(--ug-white);
   }
 
   .ug-res-page {
