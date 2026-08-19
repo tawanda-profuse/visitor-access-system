@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/lib/auth-context";
+import { ResidentAuthProvider } from "@/lib/resident-auth-context";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
@@ -11,7 +12,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ResidentAuthProvider>{children}</ResidentAuthProvider>
+        </AuthProvider>
       </body>
     </html>
   );
