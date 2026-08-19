@@ -172,7 +172,11 @@ button {
 
 .ug-form-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* minmax(0, 1fr), not plain 1fr: grid tracks default to a minimum size of the content's
+     max-content, so a wide native control (e.g. <input type="datetime-local">, whose
+     rendered width doesn't shrink much) forces the row — and the whole page — wider than
+     the viewport. minmax(0, ...) lets the track actually shrink to fit. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 1rem;
 }
 

@@ -1,9 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useResidentAuth } from "@/lib/resident-auth-context";
+import { residentApiFetch } from "@/lib/resident-api-client";
+
+type MobileAppInfo = { apkUrl: string | null; buildDate: string | null };
+
+function formatBuildDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 export default function ResidentSettingsPage() {
   const { resident, logout } = useResidentAuth();
+  const [appInfo, setAppInfo] = useState<MobileAppInfo | null>(null);
+
+  useEffect(() => {
+    residentApiFetch<MobileAppInfo>("/api/public/mobile-app")
+      .then(setAppInfo)
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="ug-res-page">
@@ -23,6 +38,18 @@ export default function ResidentSettingsPage() {
               {ru.unit.label} — {ru.unit.property.name}
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {appInfo?.apkUrl ? (
+        <div className="ug-card">
+          <div style={{ fontWeight: 700, marginBottom: "0.3rem" }}>Get the Mobile App</div>
+          <p style={{ color: "var(--ug-text-secondary)", fontSize: "0.85rem", margin: "0 0 0.75rem" }}>
+            Available for Android devices only.
+          </p>
+          <a href={appInfo.apkUrl} className="ug-btn ug-btn-secondary" style={{ display: "block", textAlign: "center" }}>
+            Download Mobile App{appInfo.buildDate ? ` (version from ${formatBuildDate(appInfo.buildDate)})` : ""}
+          </a>
         </div>
       ) : null}
 

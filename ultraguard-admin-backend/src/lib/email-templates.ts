@@ -1,5 +1,6 @@
 import { getSupportEmail } from "./settings";
 import { LOGO_CID } from "./email";
+import { getApkBuildDate, formatApkBuildDate } from "./apk-info";
 
 const BRAND_RED = "#D71920";
 const BRAND_BLACK = "#111111";
@@ -49,6 +50,10 @@ function button(link: string, label: string): string {
 
 export async function residentInviteEmail(link: string) {
   const apkUrl = process.env.ANDROID_APK_URL;
+  const apkBuildDateIso = apkUrl ? await getApkBuildDate() : null;
+  const apkButtonLabel = apkBuildDateIso
+    ? `Download Mobile App (version from ${formatApkBuildDate(apkBuildDateIso)})`
+    : "Download Mobile App";
   const webAppUrl = `${process.env.BASE_URL}/resident/login`;
   const appDownloadHtml = `
     <p style="margin-top:28px;padding-top:20px;border-top:1px solid #e5e5e5;">
@@ -56,7 +61,7 @@ export async function residentInviteEmail(link: string) {
       Create and manage visitor Gate Passes from your phone with the Ultra-Guard mobile app.
     </p>
     <p style="font-size:13px;color:#666;">Currently available for Android devices only.</p>
-    ${apkUrl ? button(apkUrl, "Download Mobile App") : ""}
+    ${apkUrl ? button(apkUrl, apkButtonLabel) : ""}
     <p style="font-size:13px;color:#666;">Using an iPhone, or prefer a browser? <a href="${webAppUrl}" style="color:${BRAND_RED};">Use the Web App</a> instead — no download required.</p>`;
 
   return {

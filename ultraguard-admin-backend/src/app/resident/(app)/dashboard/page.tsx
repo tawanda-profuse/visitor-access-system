@@ -68,7 +68,7 @@ export default function ResidentDashboardPage() {
         </Link>
       </div>
 
-      <div className="ug-card" style={{ borderColor: "var(--ug-danger)" }}>
+      <div className="ug-card">
         <p style={{ margin: "0 0 0.75rem", fontSize: "0.9rem" }}>
           Instantly alert the security guard desk or monitoring centre.
         </p>
