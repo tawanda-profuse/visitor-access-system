@@ -13,7 +13,7 @@
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
         },
         "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:tawanda-profuse/ultraguard-visitor-access-system:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub": "repo:tawanda-profuse@25343696/ultraguard-visitor-access-system@1326630507:ref:refs/heads/main"
         }
       }
     }

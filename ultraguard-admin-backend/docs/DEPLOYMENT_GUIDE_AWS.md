@@ -344,14 +344,33 @@ OIDC provider rather than long-lived AWS keys — no secrets to rotate.
      }'
    ```
 
-   > **The `sub` condition must be exactly** `repo:<owner>/<repo>:ref:refs/heads/<branch>`
-   > — no other characters. This is the literal string GitHub embeds in the OIDC token
-   > it hands AWS; anything else (extra IDs, `@` suffixes, typos) means `sts:AssumeRoleWithWebIdentity`
-   > silently fails and the workflow can't authenticate at all. **Worth double-checking
-   > against whatever role is live today** — `aws iam get-role --role-name
-   > github-actions-ultraguard-backend-deploy --query 'Role.AssumeRolePolicyDocument'`
-   > — since a malformed condition here is a common copy-paste mistake and won't show up
-   > as an error until the next deploy attempt.
+   > **The `sub` condition must match the exact string GitHub's OIDC token actually
+   > carries for your account** — this is the literal string GitHub embeds in the token
+   > it hands AWS, and any mismatch (wrong owner/repo, wrong branch, a typo) means
+   > `sts:AssumeRoleWithWebIdentity` silently fails and the workflow can't authenticate
+   > at all. **Don't assume the plain `repo:<owner>/<repo>:ref:refs/heads/<branch>` form is
+   > what you'll get** — some GitHub org/enterprise configurations append numeric owner
+   > and repo IDs, e.g. `repo:<owner>@<ownerId>/<repo>@<repoId>:ref:refs/heads/<branch>`.
+   > This bit us while setting up the APK-upload role in this exact account: the
+   > textbook format failed every time (confirmed via CloudTrail — see below — which
+   > showed AWS receiving `@`-suffixed owner/repo IDs), while `github-actions-ultraguard-backend-deploy`,
+   > set up earlier with that suffixed format, worked all along. **Ground truth beats
+   > assumption here** — if a role that should work doesn't, check what CloudTrail says
+   > the token's `sub` claim actually was on the failed attempt, and match the trust
+   > policy to that exactly, rather than to what a guide (including this one) claims is
+   > standard:
+   >
+   > ```bash
+   > aws cloudtrail lookup-events \
+   >   --lookup-attributes AttributeKey=EventName,AttributeValue=AssumeRoleWithWebIdentity \
+   >   --start-time "$(date -u -d '30 minutes ago' +%Y-%m-%dT%H:%M:%S)" \
+   >   --query 'Events[0].Username' --output text
+   > ```
+   >
+   > That prints the exact `sub` value GitHub presented — copy it verbatim into the
+   > trust policy's `StringLike` condition. You can also compare against an already-working
+   > role in the same account: `aws iam get-role --role-name
+   > github-actions-ultraguard-backend-deploy --query 'Role.AssumeRolePolicyDocument'`.
 
 3. **Attach a permissions policy** scoped to just this app's ECR repo and ECS service:
 
@@ -448,10 +467,11 @@ are the one-time AWS console steps to make it work.
 5. Click **Next**, skip attaching a policy for now (you'll add an inline one), click
    through to **Create role**, name it `github-actions-ultraguard-apk-upload`.
 6. Open the new role → **Trust relationships** tab → **Edit trust policy** → replace with
-   the contents of `ultraguard-resident-app/infra/aws/apk-upload-trust-policy.json`,
-   swapping in your account ID and exact `owner/repo` — the `sub` condition must read
-   exactly `repo:<owner>/<repo>:ref:refs/heads/main` (see the callout in Step 6.2 about
-   why this string has to be exact).
+   the contents of `ultraguard-resident-app/infra/aws/apk-upload-trust-policy.json` (this
+   file already has the `sub` value confirmed via CloudTrail for this account — see the
+   callout in Step 6.2 — swap in your own account ID/owner/repo only if you're setting
+   this up in a *different* AWS account or repo, and verify the real `sub` format for
+   that account rather than assuming this one's format carries over).
 7. Open the **Permissions** tab → **Add permissions** → **Create inline policy** → switch
    to the **JSON** tab → paste the contents of
    `ultraguard-resident-app/infra/aws/apk-upload-permissions-policy.json`, swapping in
@@ -541,7 +561,8 @@ Find previous tags with `aws ecr describe-images --repository-name ultraguard-ad
 - **Health checks failing**: confirm `/api/health` actually returns 200 — hit the
   container directly if you can, or check `containerPort` matches what the app listens
   on (3000, set via the Dockerfile's `ENV PORT=3000`).
-- **GitHub Actions can't assume the role**: almost always the OIDC `sub` condition typo
-  described in Step 6.2 — copy the exact string GitHub Actions logs show it's presenting
-  (visible in the failed step's error) and compare byte-for-byte against the role's trust
-  policy.
+- **GitHub Actions can't assume the role** (`Not authorized to perform sts:AssumeRoleWithWebIdentity`):
+  almost always the OIDC `sub` condition not matching what your account's tokens actually
+  carry — see the callout in Step 6.2. Don't guess the format; pull it from CloudTrail
+  (`aws cloudtrail lookup-events --lookup-attributes AttributeKey=EventName,AttributeValue=AssumeRoleWithWebIdentity`)
+  and compare byte-for-byte against the role's trust policy.
