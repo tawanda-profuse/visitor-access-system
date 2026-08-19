@@ -39,14 +39,18 @@ export function ResidentAuthProvider({ children }: { children: React.ReactNode }
       .finally(() => setLoading(false));
   }, []);
 
-  const login = useCallback(async (identifier: string, password: string) => {
-    const data = await residentApiFetch<{ token: string; resident: ResidentSession }>(
-      "/api/auth/resident/login",
-      { method: "POST", body: { identifier, password } },
-    );
-    window.localStorage.setItem(RESIDENT_TOKEN_STORAGE_KEY, data.token);
-    setResident(data.resident);
-  }, []);
+  const login = useCallback(
+    async (identifier: string, password: string) => {
+      const data = await residentApiFetch<{ token: string; resident: ResidentSession }>(
+        "/api/auth/resident/login",
+        { method: "POST", body: { identifier, password } },
+      );
+      window.localStorage.setItem(RESIDENT_TOKEN_STORAGE_KEY, data.token);
+      setResident(data.resident);
+      router.push("/resident/dashboard");
+    },
+    [router],
+  );
 
   const logout = useCallback(() => {
     window.localStorage.removeItem(RESIDENT_TOKEN_STORAGE_KEY);
