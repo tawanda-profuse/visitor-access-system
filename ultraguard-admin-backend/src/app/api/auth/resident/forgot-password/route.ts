@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (resident && resident.status === "ACTIVE" && resident.email) {
       const rawToken = await createPasswordSetupToken("RESIDENT", resident.id, "RESET");
       const link = `${process.env.BASE_URL}/set-password?token=${rawToken}&role=resident`;
-      await sendEmail({ to: resident.email, ...(await forgotPasswordEmail(link)) });
+      await sendEmail({ to: resident.email, ...(await forgotPasswordEmail(link, { includeApkDownload: true })) });
     } else if (resident) {
       devLog(`Forgot-password requested for resident ${resident.id} with no email on file — cannot send`);
     }

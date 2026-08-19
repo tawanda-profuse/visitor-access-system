@@ -417,6 +417,13 @@ button {
   gap: 0.4rem;
 }
 
+/* Hidden on desktop; swapped in for .ug-sidebar under the responsive breakpoint below.
+   Unlike the resident app's evenly-spaced bottom nav, the admin portal has too many links
+   to fit one screen width, so this scrolls horizontally instead of wrapping/shrinking. */
+.ug-bottom-nav {
+  display: none;
+}
+
 .ug-main {
   flex: 1;
   min-width: 0;

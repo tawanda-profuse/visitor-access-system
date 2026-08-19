@@ -66,6 +66,11 @@ try {
     });
     console.log(`adb reverse tcp:${port} tcp:${port} OK`);
   }
+  console.log(
+    "\nIf the app still can't reach the backend, uncomment EXPO_PUBLIC_API_BASE_URL=http://localhost:3000 " +
+      "in .env (it's commented out by default so scanning the Expo Go QR code over Wi-Fi auto-detects your " +
+      "LAN IP instead) — then restart `expo start`. Re-comment it out when you go back to Wi-Fi/QR.",
+  );
 } catch (error) {
   console.error("Failed to set up adb reverse:", error.message);
   process.exit(1);

@@ -48,14 +48,16 @@ function button(link: string, label: string): string {
   <p style="font-size:12px;color:#666;word-break:break-all;">If the button doesn't work, copy and paste this link into your browser:<br/>${link}</p>`;
 }
 
-export async function residentInviteEmail(link: string) {
+// Shared by residentInviteEmail and forgotPasswordEmail (resident flow only — an admin
+// resetting their portal password has no use for the resident mobile app).
+async function apkDownloadSectionHtml(): Promise<string> {
   const apkUrl = process.env.ANDROID_APK_URL;
   const apkBuildDateIso = apkUrl ? await getApkBuildDate() : null;
   const apkButtonLabel = apkBuildDateIso
     ? `Download Mobile App (version from ${formatApkBuildDate(apkBuildDateIso)})`
     : "Download Mobile App";
   const webAppUrl = `${process.env.BASE_URL}/resident/login`;
-  const appDownloadHtml = `
+  return `
     <p style="margin-top:28px;padding-top:20px;border-top:1px solid #e5e5e5;">
       <strong>Get the mobile app</strong><br/>
       Create and manage visitor Gate Passes from your phone with the Ultra-Guard mobile app.
@@ -63,7 +65,9 @@ export async function residentInviteEmail(link: string) {
     <p style="font-size:13px;color:#666;">Currently available for Android devices only.</p>
     ${apkUrl ? button(apkUrl, apkButtonLabel) : ""}
     <p style="font-size:13px;color:#666;">Using an iPhone, or prefer a browser? <a href="${webAppUrl}" style="color:${BRAND_RED};">Use the Web App</a> instead — no download required.</p>`;
+}
 
+export async function residentInviteEmail(link: string) {
   return {
     subject: "Welcome to Ultra-Guard — Set Up Your Account",
     link,
@@ -72,7 +76,7 @@ export async function residentInviteEmail(link: string) {
       `<p>An account has been created for you on the Ultra-Guard Visitor Access System.</p>
        <p>Set your password to finish setting up your account, then open the Ultra-Guard mobile app and sign in with your phone number or email to start creating visitor Gate Passes.</p>
        ${button(link, "Set Your Password")}
-       ${appDownloadHtml}`,
+       ${await apkDownloadSectionHtml()}`,
     ),
   };
 }
@@ -90,7 +94,7 @@ export async function propertyAdminInviteEmail(link: string) {
   };
 }
 
-export async function forgotPasswordEmail(link: string) {
+export async function forgotPasswordEmail(link: string, options?: { includeApkDownload?: boolean }) {
   return {
     subject: "Reset Your Ultra-Guard Password",
     link,
@@ -98,7 +102,8 @@ export async function forgotPasswordEmail(link: string) {
       "Reset Your Password",
       `<p>We received a request to reset your Ultra-Guard password. If you didn't request this, you can safely ignore this email.</p>
        ${button(link, "Reset Password")}
-       <p style="font-size:13px;color:#666;">This link will expire in 1 hour.</p>`,
+       <p style="font-size:13px;color:#666;">This link will expire in 1 hour.</p>
+       ${options?.includeApkDownload ? await apkDownloadSectionHtml() : ""}`,
     ),
   };
 }

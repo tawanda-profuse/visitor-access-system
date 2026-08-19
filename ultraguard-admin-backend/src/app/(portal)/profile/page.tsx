@@ -17,6 +17,7 @@ export default function ProfilePage() {
         <ProfileDetailsForm admin={admin} onSaved={updateAdmin} />
         <PasswordForm />
         {canManageSettings(admin) ? <SupportEmailForm /> : null}
+        {canManageSettings(admin) ? <MobileAppLinksCard /> : null}
       </div>
     </>
   );
@@ -202,6 +203,53 @@ function SupportEmailForm() {
           {submitting ? "Saving…" : "Save Support Email"}
         </button>
       </form>
+    </div>
+  );
+}
+
+function formatBuildDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function MobileAppLinksCard() {
+  const [appInfo, setAppInfo] = useState<{ apkUrl: string | null; buildDate: string | null } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    apiFetch<{ apkUrl: string | null; buildDate: string | null }>("/api/public/mobile-app")
+      .then(setAppInfo)
+      .catch(() => {});
+  }, []);
+
+  async function copyResidentWebAppLink() {
+    await navigator.clipboard.writeText(`${window.location.origin}/resident/login`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="ug-card ug-card-pad">
+      <h2 style={{ fontSize: "1rem", margin: "0 0 0.4rem" }}>Resident Mobile & Web Access</h2>
+      <p style={{ color: "var(--ug-text-secondary)", fontSize: "0.85rem", margin: "0 0 1rem" }}>
+        Share these with residents directly, outside of the invitation email.
+      </p>
+
+      {copied ? <div className="ug-banner ug-banner-success">Link copied to clipboard.</div> : null}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+        {appInfo?.apkUrl ? (
+          <a href={appInfo.apkUrl} className="ug-btn ug-btn-secondary" style={{ textAlign: "center" }}>
+            Download Mobile App{appInfo.buildDate ? ` (version from ${formatBuildDate(appInfo.buildDate)})` : ""}
+          </a>
+        ) : (
+          <div className="ug-banner ug-banner-danger">
+            No Android APK URL is configured yet — set ANDROID_APK_URL to enable this.
+          </div>
+        )}
+        <button type="button" className="ug-btn ug-btn-secondary" onClick={copyResidentWebAppLink}>
+          Copy Resident Web App Link
+        </button>
+      </div>
     </div>
   );
 }
