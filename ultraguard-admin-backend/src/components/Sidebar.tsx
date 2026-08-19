@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   LogOut,
+  Mail,
   PanelLeftClose,
   PanelLeftOpen,
   type LucideIcon,
@@ -127,6 +128,16 @@ export function Sidebar() {
           <Settings size={18} strokeWidth={2} className="ug-nav-icon" />
           {!collapsed ? <span>Profile Settings</span> : null}
         </Link>
+
+        <a
+          href="mailto:tawandamsengezi@gmail.com"
+          className="ug-nav-link"
+          style={{ color: "var(--ug-red)", marginBottom: "0.3rem" }}
+          title={collapsed ? "Contact Tech Support" : undefined}
+        >
+          <Mail size={18} strokeWidth={2} className="ug-nav-icon" />
+          {!collapsed ? <span>Contact Tech Support</span> : null}
+        </a>
 
         <button
           className="ug-btn ug-btn-secondary ug-btn-sm ug-logout-btn"

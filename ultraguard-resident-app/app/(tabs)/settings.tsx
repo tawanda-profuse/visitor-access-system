@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/ScreenContainer";
@@ -122,6 +122,12 @@ export default function SettingsScreen() {
         </Text>
         <Button label="Security Guard Mode" variant="secondary" onPress={() => router.push("/guard")} />
       </View>
+
+      <Pressable onPress={() => Linking.openURL("mailto:tawandamsengezi@gmail.com")}>
+        <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
+          Contact Tech Support
+        </Text>
+      </Pressable>
 
       <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: "center" }}>
         Ultra-Guard Security & Fire · Visitor Access Management System
