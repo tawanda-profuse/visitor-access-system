@@ -58,7 +58,10 @@ export function Sidebar() {
     if (hydrated) window.localStorage.setItem(COLLAPSE_STORAGE_KEY, String(collapsed));
   }, [collapsed, hydrated]);
 
+  const allNavItems = [...NAV_ITEMS, ...(isSuperAdmin(admin) ? SUPER_ADMIN_NAV_ITEMS : [])];
+
   return (
+    <>
     <aside className={`ug-sidebar ${collapsed ? "ug-sidebar-collapsed" : ""}`}>
       <div className="ug-sidebar-top">
         <div className="ug-sidebar-logo">
@@ -87,7 +90,7 @@ export function Sidebar() {
       </div>
 
       <nav className="ug-sidebar-nav">
-        {[...NAV_ITEMS, ...(isSuperAdmin(admin) ? SUPER_ADMIN_NAV_ITEMS : [])].map((item) => {
+        {allNavItems.map((item) => {
           const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
           const Icon = item.icon;
           return (
@@ -150,5 +153,31 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+
+    <nav className="ug-bottom-nav">
+      {allNavItems.map((item) => {
+        const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+        const Icon = item.icon;
+        return (
+          <Link key={item.href} href={item.href} className={`ug-bottom-nav-link ${active ? "ug-bottom-nav-link-active" : ""}`}>
+            <Icon size={20} strokeWidth={2} />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+      <Link href="/profile" className={`ug-bottom-nav-link ${pathname === "/profile" ? "ug-bottom-nav-link-active" : ""}`}>
+        <Settings size={20} strokeWidth={2} />
+        <span>Settings</span>
+      </Link>
+      <a href="mailto:tawandamsengezi@gmail.com" className="ug-bottom-nav-link" style={{ color: "var(--ug-red)" }}>
+        <Mail size={20} strokeWidth={2} />
+        <span>Support</span>
+      </a>
+      <button className="ug-bottom-nav-link" onClick={logout}>
+        <LogOut size={20} strokeWidth={2} />
+        <span>Log Out</span>
+      </button>
+    </nav>
+    </>
   );
 }

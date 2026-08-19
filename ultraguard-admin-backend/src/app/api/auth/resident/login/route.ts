@@ -18,11 +18,16 @@ export async function POST(req: NextRequest) {
     const body = schema.parse(await req.json());
     const identifier = body.identifier.trim();
 
+    // Includes `units` (matching /api/auth/me's shape exactly) so a freshly-logged-in
+    // session has complete data immediately — without this, screens that read
+    // resident.units (e.g. Guard mode's "which gates are at my property" filter) would
+    // incorrectly see an empty list until the next /api/auth/me refresh repopulated it.
+    const include = { units: { include: { unit: { include: { property: true as const } } } } };
     const resident = identifier.includes("@")
-      ? await prisma.resident.findUnique({ where: { email: identifier.toLowerCase() } })
+      ? await prisma.resident.findUnique({ where: { email: identifier.toLowerCase() }, include })
       : await (async () => {
           try {
-            return await prisma.resident.findUnique({ where: { phone: normalizePhone(identifier) } });
+            return await prisma.resident.findUnique({ where: { phone: normalizePhone(identifier) }, include });
           } catch {
             return null;
           }

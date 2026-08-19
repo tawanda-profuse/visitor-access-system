@@ -1,18 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { useResidentAuth } from "@/lib/resident-auth-context";
 import { ApiClientError } from "@/lib/api-client";
 import { PasswordInput } from "@/components/PasswordInput";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { admin, loading: adminLoading, login } = useAuth();
+  const { resident, loading: residentLoading } = useResidentAuth();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Global guard: whichever role you're already signed in as, land on that role's
+  // dashboard rather than a login form, regardless of which login URL you visited.
+  useEffect(() => {
+    if (adminLoading || residentLoading) return;
+    if (admin) router.replace("/dashboard");
+    else if (resident) router.replace("/resident/dashboard");
+  }, [adminLoading, residentLoading, admin, resident, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -76,6 +88,12 @@ export default function LoginPage() {
         <div style={{ textAlign: "center", marginTop: "1rem" }}>
           <Link href="/forgot-password" style={{ fontSize: "0.85rem", color: "var(--ug-text-secondary)" }}>
             Forgot password?
+          </Link>
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: "0.5rem" }}>
+          <Link href="/resident/login" style={{ fontSize: "0.85rem", color: "var(--ug-text-secondary)" }}>
+            Are you a resident? <span style={{ color: "var(--ug-red)", fontWeight: 600 }}>Sign in here</span>
           </Link>
         </div>
       </div>

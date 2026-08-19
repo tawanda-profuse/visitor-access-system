@@ -44,13 +44,40 @@
   min-height: 100vh;
 }
 
+/* Fixed (not a flex sibling that reflows on resize/collapse) so it never scrolls with
+   the page and — per explicit design choice, unlike the admin portal's sidebar — never
+   changes .ug-res-main's layout when toggled. .ug-res-main reserves a constant margin
+   for it below; collapsing only changes what's rendered inside this fixed rail. */
 .ug-res-sidebar {
-  flex: 0 0 220px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   background: var(--ug-black);
   padding: 1.25rem 1rem;
   gap: 1.5rem;
+  transition: width 0.18s ease;
+  z-index: 15;
+}
+
+.ug-res-sidebar-collapsed {
+  width: 72px;
+}
+
+.ug-res-sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ug-res-sidebar-collapsed .ug-res-sidebar-top {
+  flex-direction: column;
 }
 
 .ug-res-sidebar-logo {
@@ -58,6 +85,32 @@
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
   display: flex;
+  min-width: 0;
+  flex: 1;
+}
+
+.ug-res-sidebar-collapsed .ug-res-sidebar-logo {
+  flex: none;
+  padding: 0.4rem;
+}
+
+.ug-res-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #9a9a9a;
+  cursor: pointer;
+}
+
+.ug-res-sidebar-toggle:hover {
+  background: #1c1c1c;
+  color: var(--ug-white);
 }
 
 .ug-res-sidebar-nav {
@@ -85,6 +138,12 @@
   font-weight: 600;
   padding: 0.6rem 0.75rem;
   border-radius: 8px;
+  white-space: nowrap;
+}
+
+.ug-res-sidebar-collapsed .ug-res-nav-link {
+  justify-content: center;
+  padding: 0.6rem;
 }
 
 .ug-res-nav-link:hover {
@@ -100,6 +159,7 @@
 .ug-res-main {
   flex: 1;
   min-width: 0;
+  margin-left: 220px; /* constant — see .ug-res-sidebar comment above */
 }
 
 .ug-res-bottom-nav {
@@ -188,6 +248,7 @@
   }
 
   .ug-res-main {
+    margin-left: 0;
     padding-bottom: 4.5rem; /* clear the fixed bottom nav */
   }
 

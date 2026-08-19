@@ -5,19 +5,25 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useResidentAuth, ApiClientError } from "@/lib/resident-auth-context";
+import { useAuth } from "@/lib/auth-context";
 import { PasswordInput } from "@/components/PasswordInput";
 
 export default function ResidentLoginPage() {
-  const { resident, loading, login } = useResidentAuth();
+  const { resident, loading: residentLoading, login } = useResidentAuth();
+  const { admin, loading: adminLoading } = useAuth();
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Global guard: whichever role you're already signed in as, land on that role's
+  // dashboard rather than a login form, regardless of which login URL you visited.
   useEffect(() => {
-    if (!loading && resident) router.replace("/resident/dashboard");
-  }, [loading, resident, router]);
+    if (adminLoading || residentLoading) return;
+    if (resident) router.replace("/resident/dashboard");
+    else if (admin) router.replace("/dashboard");
+  }, [adminLoading, residentLoading, resident, admin, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,6 +95,12 @@ export default function ResidentLoginPage() {
           <div style={{ textAlign: "center", marginTop: "1rem" }}>
             <Link href="/resident/forgot-password" style={{ fontSize: "0.85rem", color: "var(--ug-text-secondary)" }}>
               Forgot password?
+            </Link>
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: "0.5rem" }}>
+            <Link href="/login" style={{ fontSize: "0.85rem", color: "var(--ug-text-secondary)" }}>
+              Are you lost? <span style={{ color: "var(--ug-red)", fontWeight: 600 }}>Login as Admin</span>
             </Link>
           </div>
         </div>

@@ -13,11 +13,17 @@ export default function ProfilePage() {
   return (
     <>
       <PageHeader title="Profile Settings" subtitle="Manage your own account details and password." />
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: 480 }}>
-        <ProfileDetailsForm admin={admin} onSaved={updateAdmin} />
-        <PasswordForm />
-        {canManageSettings(admin) ? <SupportEmailForm /> : null}
-        {canManageSettings(admin) ? <MobileAppLinksCard /> : null}
+      <div className="ug-profile-grid">
+        <div className="ug-profile-main">
+          <ProfileDetailsForm admin={admin} onSaved={updateAdmin} />
+          <PasswordForm />
+          {canManageSettings(admin) ? <SupportEmailForm /> : null}
+        </div>
+        {canManageSettings(admin) ? (
+          <div className="ug-profile-side">
+            <MobileAppLinksCard />
+          </div>
+        ) : null}
       </div>
     </>
   );

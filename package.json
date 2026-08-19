@@ -8,6 +8,7 @@
     "dev:backend": "npm run dev --prefix ultraguard-admin-backend",
     "dev:mobile": "npm run start --prefix ultraguard-resident-app",
     "start:all": "node scripts/start-all.js",
+    "usb": "npm run reverse --prefix ultraguard-resident-app && npm run start:all",
     "android:apk": "npm run build:android:apk --prefix ultraguard-resident-app",
     "android:apk:local": "npm run build:android:apk:local --prefix ultraguard-resident-app",
     "ios:build": "npm run build:ios --prefix ultraguard-resident-app"

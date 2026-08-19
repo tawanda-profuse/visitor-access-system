@@ -636,3 +636,92 @@ button {
   color: var(--ug-text-secondary);
   font-size: 0.82rem;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Profile / Settings page                                                */
+/* ---------------------------------------------------------------------- */
+
+.ug-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 1.25rem;
+  align-items: start;
+  max-width: 960px;
+}
+
+.ug-profile-main,
+.ug-profile-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.ug-profile-main {
+  max-width: 480px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Responsive: sidebar (desktop) <-> horizontally scrollable bottom nav    */
+/* ---------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .ug-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ug-profile-main {
+    max-width: none;
+  }
+
+  .ug-sidebar {
+    display: none;
+  }
+
+  .ug-content {
+    padding: 1rem;
+    padding-bottom: 5rem; /* clear the fixed bottom nav */
+  }
+
+  .ug-topbar {
+    padding: 1rem;
+  }
+
+  .ug-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    background: var(--ug-black);
+    border-top: 1px solid #262626;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
+  }
+
+  .ug-bottom-nav-link {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    min-width: 64px;
+    color: #9a9a9a;
+    text-decoration: none;
+    background: none;
+    border: none;
+    font-size: 0.68rem;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 0.4rem 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .ug-bottom-nav-link-active {
+    color: var(--ug-white);
+  }
+}
