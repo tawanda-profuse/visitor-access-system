@@ -1,30 +1,30 @@
 {
-  "name": "ultraguard-visitor-access-system",
+  "name": "visitor-access-system",
   "version": "1.0.0",
   "description": "Implementation of `SRS_Visitor_Access_System.pdf`, scoped to **Phase 1 (Design & API Protocols)** and **Phase 2 (Mobile App & Backend Development)** per the SRS's 5 implementation phases. Phases 3 (physical intercom hardware integration/pilot) and 4 (app store deployment/staff training) are out of scope until real gate/intercom hardware is selected — see \"Hardware integration\" below.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev:backend": "npm run dev --prefix ultraguard-admin-backend",
-    "dev:mobile": "npm run start --prefix ultraguard-resident-app",
+    "dev:backend": "npm run dev --prefix admin-backend",
+    "dev:mobile": "npm run start --prefix resident-app",
     "start:all": "node scripts/start-all.js",
-    "usb": "npm run reverse --prefix ultraguard-resident-app && npm run start:all",
-    "android:apk": "npm run build:android:apk --prefix ultraguard-resident-app",
-    "android:apk:local": "npm run build:android:apk:local --prefix ultraguard-resident-app",
-    "ios:build": "npm run build:ios --prefix ultraguard-resident-app"
+    "usb": "npm run reverse --prefix resident-app && npm run start:all",
+    "android:apk": "npm run build:android:apk --prefix resident-app",
+    "android:apk:local": "npm run build:android:apk:local --prefix resident-app",
+    "ios:build": "npm run build:ios --prefix resident-app"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tawanda-profuse/ultraguard-visitor-access-system.git"
+    "url": "git+https://github.com/tawanda-profuse/visitor-access-system.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/tawanda-profuse/ultraguard-visitor-access-system/issues"
+    "url": "https://github.com/tawanda-profuse/visitor-access-system/issues"
   },
-  "homepage": "https://github.com/tawanda-profuse/ultraguard-visitor-access-system#readme",
+  "homepage": "https://github.com/tawanda-profuse/visitor-access-system#readme",
   "devDependencies": {
     "concurrently": "^10.0.4"
   }

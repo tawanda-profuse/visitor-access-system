@@ -11,14 +11,14 @@ const os = require("os");
 const rootDir = path.resolve(__dirname, "..");
 
 if (os.platform() === "win32") {
-  console.log("Opening two terminal windows: Ultra-Guard Backend, Ultra-Guard Mobile...");
-  spawn('start "Ultra-Guard Backend" cmd /k "npm run dev:backend"', {
+  console.log("Opening two terminal windows: SecureGate Backend, SecureGate Mobile...");
+  spawn('start "SecureGate Backend" cmd /k "npm run dev:backend"', {
     cwd: rootDir,
     shell: true,
     detached: true,
     stdio: "ignore",
   }).unref();
-  spawn('start "Ultra-Guard Mobile" cmd /k "npm run dev:mobile"', {
+  spawn('start "SecureGate Mobile" cmd /k "npm run dev:mobile"', {
     cwd: rootDir,
     shell: true,
     detached: true,

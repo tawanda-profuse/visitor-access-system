@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "ultraguard-resident-app/**"
+      - "resident-app/**"
       - ".github/workflows/build-android-apk.yml"
 
 permissions:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ultraguard-resident-app
+        working-directory: resident-app
     steps:
       # The build failed once with "No space left on device" compiling native modules
       # for all 4 ABIs — GitHub's standard runners have limited free disk, most of it
@@ -54,7 +54,7 @@ jobs:
         run: npx expo prebuild --platform android
 
       - name: Build release APK
-        working-directory: ultraguard-resident-app/android
+        working-directory: resident-app/android
         # A debug build doesn't embed the JS bundle — it loads it live from a Metro dev
         # server, which is why it demands a USB/Wi-Fi connection to a dev machine
         # regardless of API config. A release build embeds the JS bundle at build time
@@ -72,8 +72,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ultraguard-resident-release-apk
-          path: ultraguard-resident-app/android/app/build/outputs/apk/release/app-release.apk
+          name: resident-release-apk
+          path: resident-app/android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
 
       # Publishes to a fixed object key that's always overwritten, so the public download
@@ -82,11 +82,11 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           # TODO: replace with the real role ARN once created (see
-          # ultraguard-resident-app/infra/aws/apk-upload-trust-policy.json)
-          role-to-assume: arn:aws:iam::077578771346:role/github-actions-ultraguard-apk-upload
+          # resident-app/infra/aws/apk-upload-trust-policy.json)
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-apk-upload
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Publish APK to public S3 bucket
-        working-directory: ultraguard-resident-app/android/app/build/outputs/apk/release
+        working-directory: resident-app/android/app/build/outputs/apk/release
         run: |
-          aws s3 cp app-release.apk "s3://${{ vars.ANDROID_APK_BUCKET }}/ultraguard-resident-latest.apk"
+          aws s3 cp app-release.apk "s3://${{ vars.ANDROID_APK_BUCKET }}/securegate-resident-latest.apk"

@@ -1,4 +1,4 @@
-# Ultra-Guard Visitor Access Management System — MVP
+# SecureGate Visitor Access Management System — MVP
 
 Implementation of `SRS_Visitor_Access_System.pdf`, scoped to **Phase 1 (Design & API
 Protocols)** and **Phase 2 (Mobile App & Backend Development)** per the SRS's 5
@@ -10,11 +10,24 @@ hardware is selected — see "Hardware integration" below.
 
 | Folder | What it is |
 |---|---|
-| [`ultraguard-admin-backend/`](ultraguard-admin-backend/README.md) | Next.js **API-only** backend — the "Admin Dashboard & Cloud" component's data layer, Postgres via Prisma, JWT auth for both residents and admins. |
-| [`ultraguard-resident-app/`](ultraguard-resident-app/README.md) | React Native (Expo, TypeScript) **Resident Mobile App** — invite visitors, share access codes, view logs, panic button, theme settings. |
+| [`admin-backend/`](admin-backend/README.md) | Next.js **API-only** backend — the "Admin Dashboard & Cloud" component's data layer, Postgres via Prisma, JWT auth for both residents and admins. |
+| [`resident-app/`](resident-app/README.md) | React Native (Expo, TypeScript) **Resident Mobile App** — invite visitors, share access codes, view logs, panic button, theme settings. |
 
-Run the backend first (`ultraguard-admin-backend`), then the mobile app
-(`ultraguard-resident-app`) pointed at it — see each project's README for setup.
+Run the backend first (`admin-backend`), then the mobile app
+(`resident-app`) pointed at it — see each project's README for setup.
+
+## Documentation
+
+Deeper guides live under [`admin-backend/docs/`](admin-backend/docs/):
+
+| Doc | What it covers |
+|---|---|
+| [Deployment Guide — AWS](admin-backend/docs/DEPLOYMENT_GUIDE_AWS.md) | From-scratch production deploy on AWS: ECR + ECS Fargate, GitHub Actions CI/CD, and S3-hosted APK distribution. |
+| [Deployment Guide — DigitalOcean](admin-backend/docs/DEPLOYMENT_GUIDE_DIGITALOCEAN.md) | The same, on DigitalOcean (App Platform / Droplet + Spaces). |
+| [Hardware Integration Protocol](admin-backend/docs/HARDWARE_INTEGRATION_PROTOCOL.md) | The hardware-agnostic HTTP contract any gate/intercom device integrates against (`/api/gate/validate`, `/api/gate/heartbeat`, provisioning). Draft until real hardware is chosen. |
+| [Research notes](admin-backend/docs/RESEARCH.md) | The hardware/operations questions to resolve with a vendor before Phase 3 (intercom models, relays, networking, offline behaviour). |
+
+Each deployment guide is self-contained and written for standing up a brand-new environment.
 
 ## Running everything
 
@@ -26,15 +39,15 @@ npm install          # installs dependencies used by start:all
 npm run start:all    # runs the backend (Next.js) and the mobile app (Expo) together
 ```
 
-On Windows, `start:all` opens **two separate terminal windows** ("Ultra-Guard Backend"
-and "Ultra-Guard Mobile") rather than interleaving output in one. This is deliberate:
+On Windows, `start:all` opens **two separate terminal windows** ("SecureGate Backend"
+and "SecureGate Mobile") rather than interleaving output in one. This is deliberate:
 Expo's interactive CLI (the QR code, the `a`/`w`/`r`/etc. keyboard shortcuts menu) needs
 a real terminal to do keypress capture and screen redraws. Running it through an
 output-multiplexer like `concurrently` — which pipes the child's stdout through itself
 to prefix/color it — makes Expo see a non-interactive terminal and it silently drops
 that UI (Metro still runs fine, you just don't get the QR code). Two independent
 windows sidesteps that entirely. You can also run either half alone (`npm run
-dev:backend`, `npm run dev:mobile`), or `cd` into `ultraguard-resident-app` and run
+dev:backend`, `npm run dev:mobile`), or `cd` into `resident-app` and run
 `npm start` directly if you prefer.
 
 ## Testing the mobile app
@@ -94,10 +107,10 @@ Java is version 8). `android:apk:local` is there for whenever that changes.
 | Offline Buffer Mode | ❌ Not built — inherently device-side; documented as a future sync endpoint in the protocol doc |
 | Audio/visual feedback | N/A — device-side concern once hardware exists |
 
-**No specific intercom/gate hardware has been selected.** `ultraguard-admin-backend`
+**No specific intercom/gate hardware has been selected.** `admin-backend`
 exposes a hardware-agnostic HTTP contract (`/api/gate/validate`, `/api/gate/heartbeat`,
 `/api/gates` for provisioning) that any future device or bridge integrates against — see
-[`ultraguard-admin-backend/docs/HARDWARE_INTEGRATION_PROTOCOL.md`](ultraguard-admin-backend/docs/HARDWARE_INTEGRATION_PROTOCOL.md).
+[`admin-backend/docs/HARDWARE_INTEGRATION_PROTOCOL.md`](admin-backend/docs/HARDWARE_INTEGRATION_PROTOCOL.md).
 `TO_LEARN.md` in this folder has the vendor questions to ask before Phase 3 starts.
 
 ### 3.3 Security Company Management Portal (Web-Based)
@@ -107,7 +120,7 @@ exposes a hardware-agnostic HTTP contract (`/api/gate/validate`, `/api/gate/hear
 | Resident directory management | ✅ Built (`/api/residents` + portal UI) |
 | Live gate activity monitor | ✅ Built (`/api/entry-logs`, `/api/admin/dashboard/summary` + portal UI, live via SSE) |
 | Audit trail & reporting | ✅ Built (entry logs are queryable/filterable) |
-| Web dashboard UI | ✅ Built (`ultraguard-admin-backend/src/app/(portal)/**`) |
+| Web dashboard UI | ✅ Built (`admin-backend/src/app/(portal)/**`) |
 | Property Admin role (scoped to one property, invited by Super Admin, one-time onboarding wizard) | ✅ Built |
 | Super Admin vs. Property Admin data scoping across all portal pages | ✅ Built |
 | Admin/resident "Forgot Password" | ✅ Built, both via emailed reset links |
@@ -131,7 +144,7 @@ exposes a hardware-agnostic HTTP contract (`/api/gate/validate`, `/api/gate/hear
 - **Auth**: two independent JWT subject types (resident via phone-or-email + password,
   admin via email+password) rather than a single unified user table, matching the SRS's
   clear separation between resident and security-company actors. SMS/OTP has been
-  removed entirely — see `ultraguard-admin-backend/README.md`'s "Auth model" section.
+  removed entirely — see `admin-backend/README.md`'s "Auth model" section.
 - **Push notifications are stubbed, not faked silently** — the stub logs clearly
   (`[PUSH:PLACEHOLDER]`) so the gap is obvious rather than silently no-op'd.
 - **Email is real, not stubbed** — Nodemailer via a Brevo SMTP relay (free tier) sends

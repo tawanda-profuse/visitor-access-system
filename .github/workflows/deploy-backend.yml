@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "ultraguard-admin-backend/**"
+      - "admin-backend/**"
       - ".github/workflows/deploy-backend.yml"
 
 permissions:
@@ -13,21 +13,21 @@ permissions:
 
 env:
   AWS_REGION: ap-southeast-1
-  ECR_REPOSITORY: ultraguard-admin-backend
-  SERVICE_ARN: arn:aws:ecs:ap-southeast-1:077578771346:service/default/ultraguard-admin-backend
+  ECR_REPOSITORY: admin-backend
+  SERVICE_ARN: arn:aws:ecs:ap-southeast-1:123456789012:service/default/admin-backend
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ultraguard-admin-backend
+        working-directory: admin-backend
     steps:
       - uses: actions/checkout@v4
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::077578771346:role/github-actions-ultraguard-backend-deploy
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-backend-deploy
           aws-region: ${{ env.AWS_REGION }}
 
       - uses: aws-actions/amazon-ecr-login@v2
