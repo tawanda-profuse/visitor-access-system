@@ -48,6 +48,13 @@ jobs:
           # hasn't run yet at this point in the job.
 
       - uses: android-actions/setup-android@v3
+        with:
+          # The action's default package list includes the legacy "tools" SDK
+          # package, which Google has since removed from the repository, so
+          # `sdkmanager tools` now fails with "Failed to find package 'tools'".
+          # Install only platform-tools here; the Android Gradle Plugin fetches
+          # the required platform + build-tools automatically during the build.
+          packages: platform-tools
 
       - name: Install dependencies
         run: npm ci
