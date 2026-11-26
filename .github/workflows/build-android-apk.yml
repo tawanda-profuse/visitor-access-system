@@ -14,6 +14,13 @@ permissions:
   id-token: write # required for OIDC -> AWS role assumption
   contents: read
 
+# Rapid successive pushes to main would otherwise each start their own ~20-minute
+# build and run in parallel. This cancels any in-progress build for the same ref
+# as soon as a newer one starts, so only the latest commit's build runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   AWS_REGION: "<AWS_REGION>" # e.g. us-east-1 — set to your bucket's region
 
@@ -38,6 +45,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
+          cache: npm
+          cache-dependency-path: resident-app/package-lock.json
 
       - uses: actions/setup-java@v5
         with:
