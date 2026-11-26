@@ -1,11 +1,14 @@
 name: Build Android APK
 
-# Kept as a portfolio reference. The automatic push-to-main trigger is
-# intentionally disabled so nothing runs from this public clone — run it
-# manually from the Actions tab after wiring up your own AWS account and
-# replacing the <PLACEHOLDER> values below.
+# Builds the resident Android APK on every push to main (and on manual dispatch).
+# The build itself needs no cloud credentials — it always produces a downloadable
+# APK artifact. The optional S3 publish steps below only run once you've set the
+# ANDROID_APK_BUCKET repo variable and filled in the <PLACEHOLDER> AWS values, so
+# the workflow still passes on this portfolio clone without any AWS account.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   id-token: write # required for OIDC -> AWS role assumption
@@ -79,6 +82,7 @@ jobs:
       # URL embedded in the resident invitation email never changes and always resolves
       # to whatever was built here last (see ANDROID_APK_URL in email-templates.ts).
       - uses: aws-actions/configure-aws-credentials@v4
+        if: ${{ vars.ANDROID_APK_BUCKET != '' }}
         with:
           # TODO: replace with the real role ARN once created (see
           # resident-app/infra/aws/apk-upload-trust-policy.json)
@@ -86,6 +90,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Publish APK to public S3 bucket
+        if: ${{ vars.ANDROID_APK_BUCKET != '' }}
         working-directory: resident-app/android/app/build/outputs/apk/release
         run: |
           aws s3 cp app-release.apk "s3://${{ vars.ANDROID_APK_BUCKET }}/securegate-resident-latest.apk"
